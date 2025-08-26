@@ -8,10 +8,10 @@ useHead({
 
 <template>
   <div>
-    <!-- <MarketingNavbar /> -->
+    <MarketingNavbar />
     <main class="pt-40 pb-20">
       <slot />
     </main>
-    <!-- <MarketingFooter /> -->
+    <MarketingFooter />
   </div>
 </template>
