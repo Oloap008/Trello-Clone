@@ -28,7 +28,7 @@ const MOCK_USERS: MockUser[] = [
 
 export const useAuthStore = defineStore("auth", () => {
   // State
-  const user = ref<User | null>(null);
+  const user = ref<User | null>(MOCK_USERS[0] as User);
   const isLoggedIn = ref(false);
 
   // Getters

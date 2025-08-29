@@ -56,10 +56,21 @@
       </UDropdown>
 
       <!-- User Button -->
-      <UDropdown :items="userItems">
+      <UDropdown :items="userItems" :popper="{ placement: 'bottom-end' }">
         <UButton variant="ghost" class="p-1">
           <UAvatar size="sm" :alt="user.name" :src="user.avatar" />
         </UButton>
+
+        <template #account="{ item }">
+          <div class="text-left">
+            <p class="truncate font-medium text-gray-900 dark:text-white">
+              {{ user.name }}
+            </p>
+            <p class="truncate text-sm text-gray-500 dark:text-gray-400">
+              {{ item.label }}
+            </p>
+          </div>
+        </template>
       </UDropdown>
     </div>
   </nav>
@@ -68,9 +79,9 @@
 <script setup>
 // Mock data - replace with your actual data
 const user = ref({
-  name: "John Doe",
-  email: "john@example.com",
-  avatar: "https://avatar.vercel.sh/john",
+  name: "Paolo Henry Co",
+  email: "paolohenry008@gmail.com",
+  avatar: "https://avatar.vercel.sh/paolo",
 });
 
 const currentOrg = ref({
@@ -98,7 +109,7 @@ const orgItems = computed(() => [
   ],
 ]);
 
-const userItems = ref([
+const userItems = computed(() => [
   [
     {
       label: user.value.email,
@@ -108,38 +119,105 @@ const userItems = ref([
   ],
   [
     {
+      label: "Switch accounts",
+      icon: "i-heroicons-arrows-right-left",
+      click: () => switchAccounts(),
+    },
+    {
+      label: "Manage account",
+      icon: "i-heroicons-user-circle",
+      click: () => navigateTo("/account"),
+    },
+  ],
+  [
+    {
+      label: "Profile and visibility",
+      icon: "i-heroicons-eye",
+      click: () => navigateTo("/profile"),
+    },
+    {
+      label: "Activity",
+      icon: "i-heroicons-clock",
+      click: () => navigateTo("/activity"),
+    },
+    {
+      label: "Cards",
+      icon: "i-heroicons-rectangle-stack",
+      click: () => navigateTo("/cards"),
+    },
+    {
       label: "Settings",
       icon: "i-heroicons-cog-6-tooth",
       click: () => navigateTo("/settings"),
     },
     {
-      label: "Billing",
-      icon: "i-heroicons-credit-card",
-      click: () => navigateTo("/billing"),
+      label: "Theme",
+      icon: "i-heroicons-paint-brush",
+      click: () => openThemeSettings(),
     },
   ],
   [
     {
-      label: "Sign out",
+      label: "Create Workspace",
+      icon: "i-heroicons-building-office-2",
+      click: () => createWorkspace(),
+    },
+  ],
+  [
+    {
+      label: "Help",
+      icon: "i-heroicons-question-mark-circle",
+      click: () => navigateTo("/help"),
+    },
+    {
+      label: "Shortcuts",
+      icon: "i-heroicons-command-line",
+      click: () => showShortcuts(),
+    },
+  ],
+  [
+    {
+      label: "Log out",
       icon: "i-heroicons-arrow-left-on-rectangle",
-      click: () => signOut(),
+      click: () => logout(),
     },
   ],
 ]);
 
+// Organization methods
 const switchOrganization = (org) => {
   currentOrg.value = org;
   navigateTo(`/organization/${org.id}`);
 };
 
 const createOrganization = () => {
-  // Handle organization creation
   console.log("Create organization");
 };
 
-const signOut = () => {
-  // Handle sign out
-  console.log("Sign out");
-  navigateTo("/");
+// User account methods
+const switchAccounts = () => {
+  console.log("Switch accounts");
+};
+
+const openThemeSettings = () => {
+  console.log("Open theme settings");
+};
+
+// Main functionality methods
+const createWorkspace = () => {
+  console.log("Create workspace");
+  // You can add your workspace creation logic here
+  // For example: navigateTo('/create-workspace') or open a modal
+};
+
+const logout = () => {
+  console.log("Logging out...");
+  // Add your logout logic here
+  // For example: clear tokens, redirect to login page
+  navigateTo("/login");
+};
+
+const showShortcuts = () => {
+  console.log("Show shortcuts");
 };
 </script>
