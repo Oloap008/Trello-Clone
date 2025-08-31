@@ -68,7 +68,7 @@
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
       >
         <!-- Existing Boards -->
-        <BoardCard
+        <WorkspaceBoardCard
           v-for="board in workspaceBoards"
           :key="board.id"
           :board="board"
@@ -99,12 +99,15 @@
 <script setup lang="ts">
 import type { Workspace } from "~/types";
 import { parseWorkspaceSlug, routes } from "~/utils/routes";
-import { defaultKanbanData } from "~/utils/defaultData";
 
 // Use the app layout
 definePageMeta({
   layout: "home",
 });
+
+// Get stores
+const dataStore = useDataStore();
+const authStore = useAuthStore();
 
 // Get route params
 const route = useRoute();
@@ -113,13 +116,12 @@ const workspaceSlug = route.params.workspaceSlug as string;
 // Parse workspace info from slug
 const { id: workspaceId } = parseWorkspaceSlug(workspaceSlug);
 
-// Data
-const data = ref(defaultKanbanData);
-const currentUser = ref({ id: 1, email: "demo@example.com" });
+// Get current user from auth store
+const currentUser = computed(() => authStore.user);
 
-// Find workspace
+// Find workspace using data store
 const workspace = computed(() => {
-  return data.value.workspaces.find((w) => w.id === workspaceId);
+  return dataStore.getById("workspaces", workspaceId);
 });
 
 // Check if workspace exists
@@ -132,16 +134,16 @@ if (!workspace.value) {
 
 // Check if user has access to this workspace
 const hasAccess = computed(() => {
-  if (!workspace.value) return false;
+  if (!workspace.value || !currentUser.value) return false;
+
+  const userId = parseInt(currentUser.value.id);
 
   // User owns workspace
-  if (workspace.value.ownerId === currentUser.value.id) return true;
+  if (workspace.value.ownerId === userId) return true;
 
   // User is member of workspace
-  return data.value.workspaceMembers.some(
-    (member) =>
-      member.workspaceId === workspaceId &&
-      member.userId === currentUser.value.id
+  return dataStore.workspaceMembers.some(
+    (member) => member.workspaceId === workspaceId && member.userId === userId
   );
 });
 
@@ -152,21 +154,23 @@ if (!hasAccess.value) {
   });
 }
 
-// Get workspace boards
+// Get workspace boards using data store
 const workspaceBoards = computed(() => {
-  return data.value.boards.filter((board) => board.workspaceId === workspaceId);
+  return dataStore.getBoardsForWorkspace(workspaceId);
 });
 
 // Check if user can create boards
 const canCreateBoard = computed(() => {
-  if (!workspace.value) return false;
+  if (!workspace.value || !currentUser.value) return false;
+
+  const userId = parseInt(currentUser.value.id);
 
   // Owner can create boards
-  if (workspace.value.ownerId === currentUser.value.id) return true;
+  if (workspace.value.ownerId === userId) return true;
 
   // Check member permissions
-  const member = data.value.workspaceMembers.find(
-    (m) => m.workspaceId === workspaceId && m.userId === currentUser.value.id
+  const member = dataStore.workspaceMembers.find(
+    (m) => m.workspaceId === workspaceId && m.userId === userId
   );
 
   return member?.canCreateBoards ?? false;

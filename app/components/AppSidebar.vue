@@ -42,8 +42,8 @@
           >
             <!-- Workspace Header -->
             <button
-              @click="toggleWorkspace(workspace.id)"
               class="w-full flex items-center px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 group"
+              @click="toggleWorkspace(workspace.id)"
             >
               <!-- Workspace Avatar -->
               <div

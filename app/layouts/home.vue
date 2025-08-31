@@ -26,9 +26,7 @@
           </div>
 
           <!-- Create Button -->
-          <UButton color="blue" size="sm" @click="createWorkspace"
-            >Create</UButton
-          >
+          <UButton color="blue" size="sm" @click="openModal"> Create </UButton>
 
           <!-- Right Side Actions -->
           <div class="flex items-center space-x-2">
@@ -58,63 +56,125 @@
       </main>
     </div>
 
-    <!-- Workspace Modal -->
+    <!-- UModal - Multi-step modal -->
     <UModal
-      v-model="isWorkspaceModalOpen"
-      :ui="{ width: 'w-full max-w-lg' }"
-      teleport
+      v-model:open="isModalOpen"
+      :title="
+        modalStep === 'workspace' ? 'Create a Workspace' : 'Invite your team'
+      "
+      :ui="{
+        content: 'sm:max-w-4xl',
+        body: 'p-0',
+      }"
     >
-      <template #header>
-        <h3 class="text-lg font-semibold">Create a Workspace</h3>
+      <!-- Invisible trigger - modal is controlled programmatically -->
+      <div style="display: none" />
+
+      <template #body>
+        <div class="p-6">
+          <!-- Workspace Creation Step -->
+          <WorkspaceSetupForm
+            v-if="modalStep === 'workspace'"
+            @submit="handleWorkspaceSubmit"
+          />
+
+          <!-- Team Invitation Step -->
+          <TeamInviteForm
+            v-else-if="modalStep === 'invite'"
+            @complete="handleInviteComplete"
+            @back="modalStep = 'workspace'"
+          />
+        </div>
       </template>
 
-      <div class="p-4">
-        <!-- Form Component -->
-        <WorkspaceSetupForm @submit="handleWorkspaceSubmit" />
-      </div>
+      <template #footer>
+        <div class="flex justify-end space-x-2">
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="outline"
+            @click="closeModal"
+          />
+        </div>
+      </template>
     </UModal>
-
-    <Test />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, navigateTo } from "#app";
 import WorkspaceSetupForm from "@/components/WorkspaceSetupForm.vue";
 
 const route = useRoute();
 const showSidebar = computed(() => route.meta.showSidebar !== false);
 
-// Modal state
-const isWorkspaceModalOpen = ref(false);
+// Modal state - now with steps
+const isModalOpen = ref(false);
+const modalStep = ref("workspace"); // 'workspace' or 'invite'
 
-// Dropdown items
+// Dropdown items - using onSelect with UModal
 const userItems = ref([
   [
     {
       label: "Create Workspace",
       icon: "i-heroicons-building-office-2",
-      click: () => createWorkspace(),
+      onSelect: () => {
+        console.log("Dropdown Create Workspace clicked!");
+        openModal();
+      },
     },
   ],
   [
     {
       label: "Log out",
       icon: "i-heroicons-arrow-left-on-rectangle",
-      click: () => logout(),
+      onSelect: () => {
+        console.log("Dropdown logout clicked!");
+        logout();
+      },
     },
   ],
 ]);
 
 // Functions
-const createWorkspace = () => {
-  isWorkspaceModalOpen.value = true;
+const openModal = () => {
+  console.log("Opening modal...");
+  modalStep.value = "workspace";
+  isModalOpen.value = true;
+};
+
+const closeModal = () => {
+  console.log("Closing modal...");
+  isModalOpen.value = false;
+  modalStep.value = "workspace"; // Reset to first step
 };
 
 const handleWorkspaceSubmit = (formData) => {
   console.log("Workspace data submitted:", formData);
-  isWorkspaceModalOpen.value = false;
+
+  // Create the workspace using the data store
+  const dataStore = useDataStore();
+  const authStore = useAuthStore();
+
+  if (authStore.user) {
+    const newWorkspace = dataStore.create("workspaces", {
+      name: formData.name,
+      type: formData.type,
+      description: formData.description,
+      ownerId: parseInt(authStore.user.id),
+    });
+
+    console.log("Created workspace:", newWorkspace);
+  }
+
+  // Move to next step
+  modalStep.value = "invite";
+};
+
+const handleInviteComplete = () => {
+  console.log("Team invitation completed");
+  closeModal();
 };
 
 const logout = () => {
@@ -122,3 +182,26 @@ const logout = () => {
   navigateTo("/login");
 };
 </script>
+
+<style scoped>
+/* Modal animation */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-content-enter-active,
+.modal-content-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.modal-content-enter-from,
+.modal-content-leave-to {
+  transform: scale(0.95);
+}
+</style>
