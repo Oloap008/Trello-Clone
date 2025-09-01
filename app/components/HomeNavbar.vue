@@ -214,7 +214,7 @@ const logout = () => {
   console.log("Logging out...");
   // Add your logout logic here
   // For example: clear tokens, redirect to login page
-  navigateTo("/login");
+  navigateTo("/");
 };
 
 const showShortcuts = () => {

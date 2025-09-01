@@ -1,10 +1,11 @@
 export const useDataStore = defineStore("data", () => {
-  // Using your composable for reactive localStorage with default data from utils
+  // Using store-compatible localStorage composable
   const { value: data, isLoaded } = useLocalStorage(
     "kanban_data",
     defaultKanbanData
   );
 
+  // Rest of your store stays exactly the same...
   // Computed getters for easy access
   const users = computed(() => data.value.users);
   const workspaces = computed(() => data.value.workspaces);
@@ -173,14 +174,23 @@ export const useDataStore = defineStore("data", () => {
   };
 
   // Workspace-specific helpers
+  // Fixed method for your data store
   const getWorkspacesForUser = (userId: number) => {
+    // Convert userId to number if it's a string (for auth store compatibility)
+    const numericUserId =
+      typeof userId === "string" ? parseInt(userId) : userId;
+
     return workspaces.value.filter((workspace) => {
-      if (workspace.ownerId === userId) return true;
+      // Only include active workspaces
+      if (workspace.status !== "active") return false;
+
+      // Include if user is the owner
+      if (workspace.ownerId === numericUserId) return true;
+
+      // Include if user is a member
       return workspaceMembers.value.some(
         (member) =>
-          member.workspaceId === workspace.id &&
-          member.userId === userId &&
-          workspace.status === "active"
+          member.workspaceId === workspace.id && member.userId === numericUserId
       );
     });
   };

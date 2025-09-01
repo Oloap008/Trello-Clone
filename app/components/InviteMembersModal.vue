@@ -2,168 +2,161 @@
   <div class="flex min-w-0">
     <!-- Left Section - Form -->
     <div class="flex-1 pr-8 min-w-0">
-      <div class="p-6">
-        <h1 class="text-2xl font-bold mb-2 text-gray-900">Invite your team</h1>
-        <p class="text-gray-600 mb-8">
-          Search and invite existing users to your workspace.
-        </p>
+      <h1 class="text-2xl font-bold mb-2 text-gray-900">Invite your team</h1>
+      <p class="text-gray-600 mb-6">
+        Search and invite existing users to your workspace.
+      </p>
 
-        <form class="space-y-6" @submit.prevent="handleSubmit">
-          <!-- Workspace Members Section -->
-          <div>
-            <label class="block text-sm font-medium text-gray-900 mb-4">
-              Search users to invite
-            </label>
+      <form class="space-y-6" @submit.prevent="handleSubmit">
+        <!-- Workspace Members Section -->
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-3">
+            Search users to invite
+          </label>
 
-            <!-- User Search Input -->
-            <div class="relative mb-6" style="z-index: 1000">
-              <UInput
-                v-model="searchQuery"
-                placeholder="Search by name or email..."
-                size="lg"
-                class="w-full"
-                icon="i-heroicons-magnifying-glass"
-                @input="handleSearch"
-              />
+          <!-- User Search Input -->
+          <div class="relative" style="z-index: 1000">
+            <UInput
+              v-model="searchQuery"
+              placeholder="Search by name or email..."
+              size="lg"
+              class="w-full mb-2"
+              icon="i-heroicons-magnifying-glass"
+              @input="handleSearch"
+            />
 
-              <!-- Search Results Dropdown -->
-              <div
-                v-if="
-                  searchQuery &&
-                  (filteredUsers.length > 0 || filteredUsers.length === 0)
-                "
-                class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200/80 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[1001]"
-                style="
-                  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-                    0 0 0 1px rgba(0, 0, 0, 0.05);
-                "
-              >
-                <!-- Search Results -->
-                <div v-if="filteredUsers.length > 0">
-                  <div
-                    v-for="user in filteredUsers"
-                    :key="user.id"
-                    class="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-                    @click="selectUser(user)"
-                  >
-                    <div class="flex items-center space-x-3">
-                      <UAvatar
-                        :alt="`${user.firstName} ${user.lastName}`"
-                        size="sm"
-                        :ui="{
-                          background:
-                            'bg-gradient-to-r from-blue-500 to-purple-500',
-                        }"
-                      >
-                        {{ getUserInitials(user) }}
-                      </UAvatar>
-                      <div>
-                        <p class="text-sm font-medium text-gray-900">
-                          {{ user.firstName }} {{ user.lastName }}
-                        </p>
-                        <p class="text-xs text-gray-500">{{ user.email }}</p>
-                      </div>
-                    </div>
-                    <UButton size="xs" variant="outline"> Add </UButton>
-                  </div>
-                </div>
-
-                <!-- No results message -->
-                <div v-else class="p-3">
-                  <p class="text-sm text-gray-500 text-center">
-                    No users found
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Selected Users List -->
-            <div v-if="selectedUsers.length > 0" class="mb-8 space-y-2">
-              <h4 class="text-sm font-medium text-gray-700 mb-3">
-                Selected users:
-              </h4>
-              <div
-                v-for="user in selectedUsers"
-                :key="user.id"
-                class="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md"
-              >
-                <div class="flex items-center space-x-2">
-                  <UAvatar
-                    :alt="`${user.firstName} ${user.lastName}`"
-                    size="xs"
-                    :ui="{
-                      background:
-                        'bg-gradient-to-r from-blue-500 to-purple-500',
-                    }"
-                  >
-                    {{ getUserInitials(user) }}
-                  </UAvatar>
-                  <div>
-                    <span class="text-sm font-medium text-gray-900">
-                      {{ user.firstName }} {{ user.lastName }}
-                    </span>
-                    <span class="text-xs text-gray-500 ml-1"
-                      >({{ user.email }})</span
-                    >
-                  </div>
-                </div>
-                <button
-                  class="text-gray-400 hover:text-red-500 transition-colors"
-                  type="button"
-                  @click="removeUser(user.id)"
-                >
-                  <UIcon name="i-heroicons-x-mark" class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <!-- Invite Button -->
-            <UButton
-              type="button"
-              :loading="isInviting"
-              class="w-full mb-6"
-              :disabled="selectedUsers.length === 0"
-              @click="sendInvites"
+            <!-- Search Results Dropdown -->
+            <div
+              v-if="
+                searchQuery &&
+                (filteredUsers.length > 0 || filteredUsers.length === 0)
+              "
+              class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200/60 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[1001] backdrop-blur-sm"
+              style="
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15),
+                  0 0 0 1px rgba(0, 0, 0, 0.05);
+              "
             >
-              <span v-if="!isInviting">
-                Invite {{ selectedUsers.length }}
-                {{ selectedUsers.length === 1 ? "user" : "users" }} to Workspace
-              </span>
-              <span v-else>Sending invites...</span>
-            </UButton>
+              <!-- Search Results -->
+              <div v-if="filteredUsers.length > 0">
+                <div
+                  v-for="user in filteredUsers"
+                  :key="user.id"
+                  class="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                  @click="selectUser(user)"
+                >
+                  <div class="flex items-center space-x-3">
+                    <UAvatar
+                      :alt="`${user.firstName} ${user.lastName}`"
+                      size="sm"
+                      :ui="{
+                        background:
+                          'bg-gradient-to-r from-blue-500 to-purple-500',
+                      }"
+                    >
+                      {{ getUserInitials(user) }}
+                    </UAvatar>
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">
+                        {{ user.firstName }} {{ user.lastName }}
+                      </p>
+                      <p class="text-xs text-gray-500">{{ user.email }}</p>
+                    </div>
+                  </div>
+                  <UButton size="xs" variant="outline"> Add </UButton>
+                </div>
+              </div>
 
-            <!-- Skip Option -->
-            <div class="text-center">
+              <!-- No results message -->
+              <div v-else class="p-3">
+                <p class="text-sm text-gray-500 text-center">No users found</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Users List -->
+          <div v-if="selectedUsers.length > 0" class="mb-4 space-y-2">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+              Selected users:
+            </h4>
+            <div
+              v-for="user in selectedUsers"
+              :key="user.id"
+              class="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md"
+            >
+              <div class="flex items-center space-x-2">
+                <UAvatar
+                  :alt="`${user.firstName} ${user.lastName}`"
+                  size="xs"
+                  :ui="{
+                    background: 'bg-gradient-to-r from-blue-500 to-purple-500',
+                  }"
+                >
+                  {{ getUserInitials(user) }}
+                </UAvatar>
+                <div>
+                  <span class="text-sm font-medium text-gray-900">
+                    {{ user.firstName }} {{ user.lastName }}
+                  </span>
+                  <span class="text-xs text-gray-500 ml-1"
+                    >({{ user.email }})</span
+                  >
+                </div>
+              </div>
               <button
+                class="text-gray-400 hover:text-red-500 transition-colors"
                 type="button"
-                class="text-sm text-gray-600 hover:text-gray-800 underline transition-colors"
-                @click="handleSkip"
+                @click="removeUser(user.id)"
               >
-                I'll do this later
+                <UIcon name="i-heroicons-x-mark" class="w-4 h-4" />
               </button>
             </div>
           </div>
-        </form>
-      </div>
+
+          <!-- Invite Button -->
+          <UButton
+            type="button"
+            :loading="isInviting"
+            class="w-full mb-6"
+            :disabled="selectedUsers.length === 0"
+            @click="sendInvites"
+          >
+            <span v-if="!isInviting">
+              Invite {{ selectedUsers.length }}
+              {{ selectedUsers.length === 1 ? "user" : "users" }} to Workspace
+            </span>
+            <span v-else>Sending invites...</span>
+          </UButton>
+
+          <!-- Skip Option -->
+          <div class="text-center">
+            <button
+              type="button"
+              class="text-sm text-gray-600 hover:text-gray-800 underline transition-colors"
+              @click="handleSkip"
+            >
+              I'll do this later
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
 
     <!-- Right Section - Illustration -->
-    <div
-      class="flex-1 flex items-center justify-center pl-8 min-w-0 overflow-hidden"
-    >
+    <div class="flex-1 flex items-center justify-center pl-8 min-w-0">
       <div class="relative">
-        <!-- Background circles - contained within bounds -->
+        <!-- Background circles -->
         <div
-          class="absolute top-2 right-2 w-3 h-3 bg-blue-400 rounded-full opacity-60"
+          class="absolute -top-4 -right-4 w-3 h-3 bg-blue-400 rounded-full opacity-60"
         />
         <div
-          class="absolute bottom-2 left-2 w-2 h-2 bg-green-400 rounded-full opacity-60"
+          class="absolute -bottom-6 -left-6 w-2 h-2 bg-green-400 rounded-full opacity-60"
         />
         <div
-          class="absolute top-1/2 right-4 w-2 h-2 bg-yellow-400 rounded-full opacity-60"
+          class="absolute top-1/2 -right-8 w-2 h-2 bg-yellow-400 rounded-full opacity-60"
         />
         <div
-          class="absolute top-4 left-1/3 w-4 h-4 bg-purple-400 rounded-full opacity-40"
+          class="absolute -top-8 left-1/3 w-4 h-4 bg-purple-400 rounded-full opacity-40"
         />
 
         <!-- Main illustration container -->
@@ -218,18 +211,18 @@
 
           <!-- Cute mascot -->
           <div
-            class="absolute bottom-2 left-2 w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shadow-lg"
+            class="absolute -bottom-2 -left-4 w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shadow-lg"
           >
             <span class="text-white text-sm">😊</span>
           </div>
         </div>
 
-        <!-- Floating elements - contained within bounds -->
+        <!-- Floating elements -->
         <div
-          class="absolute top-0 left-8 w-6 h-6 bg-blue-500 rounded-full opacity-20 animate-bounce"
+          class="absolute -top-6 left-8 w-6 h-6 bg-blue-500 rounded-full opacity-20 animate-bounce"
         />
         <div
-          class="absolute bottom-0 right-12 w-4 h-4 bg-green-500 rounded-full opacity-30 animate-pulse"
+          class="absolute -bottom-4 right-12 w-4 h-4 bg-green-500 rounded-full opacity-30 animate-pulse"
         />
       </div>
     </div>

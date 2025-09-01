@@ -1,80 +1,104 @@
 <template>
   <div class="p-6 max-w-7xl mx-auto">
-    <!-- Your Workspaces Section -->
-    <section>
-      <h2
-        class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-6"
-      >
-        YOUR WORKSPACES
-      </h2>
+    <!-- Loading state -->
+    <div
+      v-if="!dataStore.isLoaded || !authStore.isLoaded"
+      class="flex items-center justify-center min-h-[50vh]"
+    >
+      <div class="text-center">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
+        ></div>
+        <p class="text-gray-600">Loading your workspaces...</p>
+      </div>
+    </div>
 
-      <div class="space-y-12">
-        <div v-for="workspace in userWorkspaces" :key="workspace.id">
-          <!-- Workspace Header -->
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-3">
-              <div
-                :class="[
-                  'w-8 h-8 rounded flex items-center justify-center text-white font-medium text-sm',
-                  getWorkspaceColor(workspace.id),
-                ]"
-              >
-                {{ getWorkspaceInitial(workspace.name) }}
+    <!-- Main content -->
+    <div v-else>
+      <!-- Your Workspaces Section -->
+      <section>
+        <h2
+          class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-6"
+        >
+          YOUR WORKSPACES
+        </h2>
+
+        <div v-if="userWorkspaces.length === 0" class="text-center py-12">
+          <p class="text-gray-500 mb-4">You don't have any workspaces yet.</p>
+          <UButton color="primary">Create Your First Workspace</UButton>
+        </div>
+
+        <div v-else class="space-y-12">
+          <div v-for="workspace in userWorkspaces" :key="workspace.id">
+            <!-- Workspace Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div
+                  :class="[
+                    'w-8 h-8 rounded flex items-center justify-center text-white font-medium text-sm',
+                    getWorkspaceColor(workspace.id),
+                  ]"
+                >
+                  {{ getWorkspaceInitial(workspace.name) }}
+                </div>
+                <h3 class="text-lg font-medium text-gray-900">
+                  {{ workspace.name }}
+                </h3>
               </div>
-              <h3 class="text-lg font-medium text-gray-900">
-                {{ workspace.name }}
-              </h3>
+
+              <div class="flex items-center space-x-1">
+                <WorkspaceNavButton
+                  :to="getWorkspaceHomeUrl(workspace)"
+                  icon="i-heroicons-squares-2x2"
+                  label="Boards"
+                />
+
+                <WorkspaceNavButton
+                  :to="getWorkspaceMembersUrl(workspace)"
+                  icon="i-heroicons-users"
+                  label="Members"
+                />
+
+                <WorkspaceNavButton
+                  :to="getWorkspaceSettingsUrl(workspace)"
+                  icon="i-heroicons-cog-6-tooth"
+                  label="Settings"
+                />
+              </div>
             </div>
 
-            <div class="flex items-center space-x-1">
-              <WorkspaceNavButton
-                :to="getWorkspaceHomeUrl(workspace)"
-                icon="i-heroicons-squares-2x2"
-                label="Boards"
+            <!-- Boards Grid -->
+            <div
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-4"
+            >
+              <!-- Existing Boards -->
+              <WorkspaceBoardCard
+                v-for="board in getWorkspaceBoards(workspace.id)"
+                :key="board.id"
+                :board="board"
+                @click="navigateToBoard(board)"
               />
 
-              <WorkspaceNavButton
-                :to="getWorkspaceMembersUrl(workspace)"
-                icon="i-heroicons-users"
-                label="Members"
-              />
-
-              <WorkspaceNavButton
-                :to="getWorkspaceSettingsUrl(workspace)"
-                icon="i-heroicons-cog-6-tooth"
-                label="Settings"
+              <!-- Create New Board Popover -->
+              <CreateBoardPopover
+                v-if="canCreateBoardInWorkspace(workspace.id)"
+                :workspace-id="workspace.id"
               />
             </div>
-          </div>
-
-          <!-- Boards Grid -->
-          <div
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-4"
-          >
-            <!-- Existing Boards -->
-            <WorkspaceBoardCard
-              v-for="board in getWorkspaceBoards(workspace.id)"
-              :key="board.id"
-              :board="board"
-              @click="navigateToBoard(board)"
-            />
-
-            <!-- Create New Board Popover -->
-            <CreateBoardPopover :workspace-id="workspace.id" />
           </div>
         </div>
-      </div>
 
-      <!-- Single View All Closed Boards Button -->
-      <div class="mt-8">
-        <button
-          class="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
-        >
-          <UIcon name="i-heroicons-eye-slash" class="w-4 h-4 mr-1.5" />
-          View all closed boards
-        </button>
-      </div>
-    </section>
+        <!-- Single View All Closed Boards Button -->
+        <div class="mt-8">
+          <button
+            class="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+          >
+            <UIcon name="i-heroicons-eye-slash" class="w-4 h-4 mr-1.5" />
+            View all closed boards
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -82,9 +106,10 @@
 import type { Workspace } from "~/types";
 import type { Board } from "~~/shared/types/globals";
 
-// Use the home layout
+// Use the home layout and require authentication
 definePageMeta({
   layout: "home",
+  middleware: "auth",
 });
 
 // Get stores
@@ -102,17 +127,24 @@ const currentUser = computed(() => authStore.user);
 const decodedUserEmail = decodeURIComponent(userEmail);
 
 // Auth check - make sure the user can access this page
-if (currentUser.value && currentUser.value.email !== decodedUserEmail) {
-  throw createError({
-    statusCode: 403,
-    statusMessage: "Access denied",
-  });
-}
+watchEffect(() => {
+  if (
+    authStore.isLoaded &&
+    currentUser.value &&
+    currentUser.value.email !== decodedUserEmail
+  ) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: "Access denied - You can only view your own boards",
+    });
+  }
+});
 
 // Get user's workspaces
 const userWorkspaces = computed(() => {
-  if (!currentUser.value) return [];
+  if (!currentUser.value || !dataStore.isLoaded) return [];
 
+  // Convert string ID to number for data store compatibility
   const userId = parseInt(currentUser.value.id);
   return dataStore.getWorkspacesForUser(userId);
 });
@@ -123,24 +155,17 @@ const getWorkspaceBoards = (workspaceId: number) => {
 };
 
 const canCreateBoardInWorkspace = (workspaceId: number) => {
-  if (!currentUser.value) return false;
+  if (!currentUser.value || !dataStore.isLoaded) return false;
 
   const userId = parseInt(currentUser.value.id);
 
-  // Check if data is loaded and workspaces exist
-  if (!dataStore.data.value?.workspaces) return false;
-
-  const workspace = dataStore.data.value.workspaces.find(
-    (w) => w.id === workspaceId
-  );
+  const workspace = dataStore.getById("workspaces", workspaceId);
 
   // Owner can create boards
   if (workspace?.ownerId === userId) return true;
 
   // Check workspace member permissions
-  if (!dataStore.data.value?.workspaceMembers) return false;
-
-  const member = dataStore.data.value.workspaceMembers.find(
+  const member = dataStore.workspaceMembers.find(
     (m) => m.workspaceId === workspaceId && m.userId === userId
   );
 
@@ -194,11 +219,13 @@ const getWorkspaceSettingsUrl = (workspace: Workspace) => {
 
 // SEO
 useHead({
-  title: `${decodedUserEmail} - Boards | Trello Clone`,
+  title: `${currentUser.value?.name || decodedUserEmail} - Boards | Taskify`,
   meta: [
     {
       name: "description",
-      content: `${decodedUserEmail}'s boards and workspaces`,
+      content: `${
+        currentUser.value?.name || decodedUserEmail
+      }'s boards and workspaces`,
     },
   ],
 });

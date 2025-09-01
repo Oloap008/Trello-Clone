@@ -124,10 +124,10 @@ definePageMeta({
 const authStore = useAuthStore();
 
 const form = ref({
-  name: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
+  name: "Paolo Co",
+  email: "email@email.com",
+  password: "password",
+  confirmPassword: "password",
 });
 
 const pending = ref(false);
@@ -143,12 +143,13 @@ const handleSubmit = async () => {
   error.value = "";
 
   try {
-    await authStore.signUp(
+    const user = await authStore.signUp(
       form.value.name,
       form.value.email,
       form.value.password
     );
-    await navigateTo("/");
+    // Redirect to user-specific boards route
+    await navigateTo(`/user/${user.email}/boards`);
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Sign up failed";
   } finally {

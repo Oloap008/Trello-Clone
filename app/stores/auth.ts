@@ -6,60 +6,26 @@ export interface User {
   email: string;
 }
 
-interface MockUser extends User {
-  password: string;
-}
-
-// Simulated user database (in a real app, this would be your backend)
-const MOCK_USERS: MockUser[] = [
-  {
-    id: "1",
-    name: "Demo User",
-    email: "demo@example.com",
-    password: "password123",
-  },
-  {
-    id: "2",
-    name: "Test User",
-    email: "test@example.com",
-    password: "test123",
-  },
-];
-
 export const useAuthStore = defineStore("auth", () => {
-  // State
-  const user = ref<User | null>(MOCK_USERS[0] as User);
-  const isLoggedIn = ref(false);
+  // Get data store at store level
+  const dataStore = useDataStore();
 
-  // Getters
-  const isAuthenticated = computed(
-    () => isLoggedIn.value && user.value !== null
+  // Use store-compatible localStorage composable for user data
+  const { value: user, isLoaded } = useLocalStorage<User | null>(
+    "taskify-user",
+    null
   );
 
-  // Actions
-  const initializeAuth = () => {
-    // Only run on client-side
-    if (import.meta.client) {
-      const storedUser = localStorage.getItem("taskify-user");
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          user.value = userData;
-          isLoggedIn.value = true;
-        } catch (error) {
-          console.error("Error parsing stored user:", error);
-          localStorage.removeItem("taskify-user");
-        }
-      }
-    }
-  };
+  // Computed authentication state
+  const isAuthenticated = computed(() => user.value !== null);
+  const isLoggedIn = computed(() => user.value !== null);
 
   const signIn = async (email: string, password: string): Promise<User> => {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Find user in mock database
-    const foundUser = MOCK_USERS.find(
+    // Find user in your existing data
+    const foundUser = dataStore.users.find(
       (u) => u.email === email && u.password === password
     );
 
@@ -67,17 +33,15 @@ export const useAuthStore = defineStore("auth", () => {
       throw new Error("Invalid email or password");
     }
 
-    // Remove password from user object
-    const { password: _, ...userWithoutPassword } = foundUser;
+    // Transform to our User interface
+    const userWithoutPassword = {
+      id: foundUser.id.toString(),
+      name: `${foundUser.firstName} ${foundUser.lastName}`,
+      email: foundUser.email,
+    };
 
-    // Update state
+    // Update user - the composable will handle localStorage automatically
     user.value = userWithoutPassword;
-    isLoggedIn.value = true;
-
-    // Store in localStorage (client-side only)
-    if (import.meta.client) {
-      localStorage.setItem("taskify-user", JSON.stringify(userWithoutPassword));
-    }
 
     return userWithoutPassword;
   };
@@ -87,11 +51,14 @@ export const useAuthStore = defineStore("auth", () => {
     email: string,
     password: string
   ): Promise<User> => {
+    console.log("Data store loaded:", dataStore.isLoaded);
+    console.log("Current users before create:", dataStore.users.length);
+
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Check if user already exists
-    const existingUser = MOCK_USERS.find((u) => u.email === email);
+    const existingUser = dataStore.users.find((u) => u.email === email);
     if (existingUser) {
       throw new Error("User with this email already exists");
     }
@@ -105,67 +72,57 @@ export const useAuthStore = defineStore("auth", () => {
       throw new Error("Password must be at least 6 characters");
     }
 
-    // Create new user
-    const newUser: MockUser = {
-      id: Date.now().toString(),
-      name: name.trim(),
+    // Split name into first and last name
+    const nameParts = name.trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    console.log("Creating user with:", { firstName, lastName, email });
+
+    // Create new user in your data store
+    const newDbUser = dataStore.create("users", {
+      username: email.split("@")[0], // Use email prefix as username
       email: email.toLowerCase(),
       password,
+      firstName,
+      lastName,
+      status: "active",
+    });
+
+    console.log("Created user:", newDbUser);
+    console.log("Users after create:", dataStore.users.length);
+
+    // Transform to our User interface
+    const userWithoutPassword = {
+      id: newDbUser.id.toString(),
+      name: `${newDbUser.firstName} ${newDbUser.lastName}`,
+      email: newDbUser.email,
     };
 
-    // Add to mock database
-    MOCK_USERS.push(newUser);
-
-    // Remove password from user object
-    const { password: _, ...userWithoutPassword } = newUser;
-
-    // Update state
+    // Update user - the composable will handle localStorage automatically
     user.value = userWithoutPassword;
-    isLoggedIn.value = true;
-
-    // Store in localStorage (client-side only)
-    if (import.meta.client) {
-      localStorage.setItem("taskify-user", JSON.stringify(userWithoutPassword));
-    }
 
     return userWithoutPassword;
   };
 
   const signOut = () => {
+    // Clear user - the composable will handle localStorage automatically
     user.value = null;
-    isLoggedIn.value = false;
-
-    // Remove from localStorage (client-side only)
-    if (import.meta.client) {
-      localStorage.removeItem("taskify-user");
-    }
-  };
-
-  const updateProfile = (updatedUser: Partial<User>) => {
-    if (user.value) {
-      user.value = { ...user.value, ...updatedUser };
-
-      // Update localStorage
-      if (import.meta.client) {
-        localStorage.setItem("taskify-user", JSON.stringify(user.value));
-      }
-    }
   };
 
   // Return reactive refs and methods
   return {
     // State
-    user: readonly(user),
-    isLoggedIn: readonly(isLoggedIn),
+    user,
+    isLoaded,
 
     // Getters
     isAuthenticated,
+    isLoggedIn,
 
     // Actions
-    initializeAuth,
     signIn,
     signUp,
     signOut,
-    updateProfile,
   };
 });

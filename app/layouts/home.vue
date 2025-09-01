@@ -56,22 +56,37 @@
       </main>
     </div>
 
-    <!-- UModal - Multi-step modal -->
-    <UModal
-      v-model:open="isModalOpen"
-      :title="
-        modalStep === 'workspace' ? 'Create a Workspace' : 'Invite your team'
-      "
-      :ui="{
-        content: 'sm:max-w-4xl',
-        body: 'p-0',
-      }"
+    <!-- Custom Modal Overlay -->
+    <div
+      v-if="isModalOpen"
+      class="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 backdrop-blur-sm pt-20"
+      @click.self="closeModal"
     >
-      <!-- Invisible trigger - modal is controlled programmatically -->
-      <div style="display: none" />
+      <!-- Modal Content -->
+      <div
+        class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-auto overflow-visible border-0"
+      >
+        <!-- Header -->
+        <div
+          class="flex items-center justify-between p-6 border-b border-gray-100"
+        >
+          <h2 class="text-lg font-semibold">
+            {{
+              modalStep === "workspace"
+                ? "Create a Workspace"
+                : "Invite your team"
+            }}
+          </h2>
+          <button
+            @click="closeModal"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <UIcon name="i-heroicons-x-mark" class="w-5 h-5" />
+          </button>
+        </div>
 
-      <template #body>
-        <div class="p-6">
+        <!-- Body -->
+        <div class="overflow-visible">
           <!-- Workspace Creation Step -->
           <WorkspaceSetupForm
             v-if="modalStep === 'workspace'"
@@ -85,10 +100,13 @@
             @back="modalStep = 'workspace'"
           />
         </div>
-      </template>
 
-      <template #footer>
-        <div class="flex justify-end space-x-2">
+        <!-- Footer -->
+        <div
+          class="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50/50 rounded-b-xl"
+        >
+          <div></div>
+          <!-- Empty left side -->
           <UButton
             label="Cancel"
             color="neutral"
@@ -96,8 +114,8 @@
             @click="closeModal"
           />
         </div>
-      </template>
-    </UModal>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -105,6 +123,8 @@
 import { ref, computed } from "vue";
 import { useRoute, navigateTo } from "#app";
 import WorkspaceSetupForm from "@/components/WorkspaceSetupForm.vue";
+
+const authStore = useAuthStore();
 
 const route = useRoute();
 const showSidebar = computed(() => route.meta.showSidebar !== false);
@@ -158,14 +178,30 @@ const handleWorkspaceSubmit = (formData) => {
   const authStore = useAuthStore();
 
   if (authStore.user) {
+    const userId = parseInt(authStore.user.id);
+
+    // Create the workspace
     const newWorkspace = dataStore.create("workspaces", {
       name: formData.name,
-      type: formData.type,
       description: formData.description,
-      ownerId: parseInt(authStore.user.id),
+      ownerId: userId,
+      isPublic: false,
+      status: "active",
     });
 
     console.log("Created workspace:", newWorkspace);
+
+    // IMPORTANT: Add the owner as a workspace member
+    const ownerMembership = dataStore.create("workspaceMembers", {
+      workspaceId: newWorkspace.id,
+      userId: userId,
+      role: "admin",
+      canCreateBoards: true,
+      canInviteMembers: true,
+      joinedAt: new Date().toISOString(),
+    });
+
+    console.log("Created owner membership:", ownerMembership);
   }
 
   // Move to next step
@@ -178,12 +214,18 @@ const handleInviteComplete = () => {
 };
 
 const logout = () => {
+  authStore.signOut();
   console.log("Logging out...");
-  navigateTo("/login");
+  navigateTo("/");
 };
 </script>
 
 <style scoped>
+/* Ensure dropdown can extend outside modal */
+.overflow-visible {
+  overflow: visible !important;
+}
+
 /* Modal animation */
 .modal-enter-active,
 .modal-leave-active {
