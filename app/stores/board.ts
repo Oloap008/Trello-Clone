@@ -291,6 +291,136 @@ export const useBoardStore = defineStore("board", () => {
       );
   };
 
+  // Archive operations
+  const archiveCard = (cardId: number) => {
+    if (!requireEditPermission()) return null;
+
+    const card = dataStore.getById("cards", cardId);
+    if (!card) return null;
+
+    console.log("Before archive - card status:", card.status); // Debug log
+
+    // Update card status to archived (not_active)
+    const archivedCard = dataStore.update("cards", cardId, {
+      status: "not_active",
+    });
+
+    console.log("After archive - card status:", archivedCard.status); // Debug log
+
+    // Update the selected card if it's currently open in modal
+    updateSelectedCard(cardId, { status: "not_active" });
+
+    // Log activity
+    logActivity(cardId, "update", `Archived card "${card.title}"`);
+
+    return archivedCard;
+  };
+
+  const restoreCard = (cardId: number) => {
+    if (!requireEditPermission()) return null;
+
+    const card = dataStore.getById("cards", cardId);
+    if (!card) return null;
+
+    // Update card status to active
+    const restoredCard = dataStore.update("cards", cardId, {
+      status: "active",
+    });
+
+    // Update the selected card if it's currently open in modal
+    updateSelectedCard(cardId, { status: "active" });
+
+    // Log activity
+    logActivity(cardId, "update", `Restored card "${card.title}"`);
+
+    return restoredCard;
+  };
+
+  const archiveList = (listId: number, archiveCards = true) => {
+    if (!requireEditPermission()) return null;
+
+    const list = dataStore.getById("lists", listId);
+    if (!list) return null;
+
+    // Archive the list
+    const archivedList = dataStore.update("lists", listId, {
+      status: "not_active",
+    });
+
+    // Optionally archive all cards in the list
+    if (archiveCards) {
+      const cardsInList = dataStore.getCardsForList(listId);
+      cardsInList.forEach((card) => {
+        dataStore.update("cards", card.id, { status: "not_active" });
+        logActivity(
+          card.id,
+          "update",
+          `Archived card "${card.title}" (list archived)`
+        );
+      });
+    }
+
+    return archivedList;
+  };
+
+  const restoreList = (listId: number, restoreCards = false) => {
+    if (!requireEditPermission()) return null;
+
+    const list = dataStore.getById("lists", listId);
+    if (!list) return null;
+
+    // Restore the list
+    const restoredList = dataStore.update("lists", listId, {
+      status: "active",
+    });
+
+    // Optionally restore all cards in the list
+    if (restoreCards) {
+      const allCards = dataStore.cards.value;
+      const cardsInList = allCards.filter((card) => card.listId === listId);
+
+      cardsInList.forEach((card) => {
+        dataStore.update("cards", card.id, { status: "active" });
+        logActivity(
+          card.id,
+          "update",
+          `Restored card "${card.title}" (list restored)`
+        );
+      });
+    }
+
+    return restoredList;
+  };
+
+  // Get archived items for a board
+  const getArchivedCards = (boardId: number) => {
+    // Use dataStore.cards directly instead of dataStore.cards.value
+    const cards = dataStore.cards || [];
+    console.log("Direct cards access:", cards);
+
+    return cards.filter(
+      (card) => card.boardId === boardId && card.status === "not_active"
+    );
+  };
+
+  const getArchivedLists = (boardId: number) => {
+    // Use dataStore.lists directly instead of dataStore.lists.value
+    const lists = dataStore.lists || [];
+    console.log("Direct lists access:", lists);
+
+    return lists.filter(
+      (list) => list.boardId === boardId && list.status === "not_active"
+    );
+  };
+
+  const closeBoard = (boardId: number) => {
+    if (!requireEditPermission()) return null;
+
+    return dataStore.update("boards", boardId, {
+      status: "not_active",
+    });
+  };
+
   return {
     // State
     currentBoardId: readonly(currentBoardId),
@@ -306,6 +436,7 @@ export const useBoardStore = defineStore("board", () => {
 
     // Board operations
     setBoardId,
+    closeBoard,
 
     // List operations
     createList,
@@ -330,5 +461,13 @@ export const useBoardStore = defineStore("board", () => {
 
     // Activity operations
     getCardActivities,
+
+    // Archive operations
+    archiveCard,
+    restoreCard,
+    archiveList,
+    restoreList,
+    getArchivedCards,
+    getArchivedLists,
   };
 });

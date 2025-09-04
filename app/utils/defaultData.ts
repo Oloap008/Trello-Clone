@@ -116,6 +116,7 @@ export const defaultKanbanData: DatabaseSchema = {
       canCreateBoards: true,
       canInviteMembers: true,
       joinedAt: new Date().toISOString(),
+      status: "active", // ✅ Add this line
     },
     {
       id: 2,
@@ -125,6 +126,7 @@ export const defaultKanbanData: DatabaseSchema = {
       canCreateBoards: true,
       canInviteMembers: false,
       joinedAt: new Date().toISOString(),
+      status: "active", // ✅ Add this line
     },
     {
       id: 3,
@@ -134,6 +136,7 @@ export const defaultKanbanData: DatabaseSchema = {
       canCreateBoards: false,
       canInviteMembers: false,
       joinedAt: new Date().toISOString(),
+      status: "active", // ✅ Add this line
     },
 
     // Team Collaboration workspace members
@@ -145,6 +148,7 @@ export const defaultKanbanData: DatabaseSchema = {
       canCreateBoards: true,
       canInviteMembers: true,
       joinedAt: new Date().toISOString(),
+      status: "active", // ✅ Add this line
     },
     {
       id: 5,
@@ -154,6 +158,7 @@ export const defaultKanbanData: DatabaseSchema = {
       canCreateBoards: true,
       canInviteMembers: true,
       joinedAt: new Date().toISOString(),
+      status: "active", // ✅ Add this line
     },
 
     // Personal Projects workspace (only owner)
@@ -165,6 +170,7 @@ export const defaultKanbanData: DatabaseSchema = {
       canCreateBoards: true,
       canInviteMembers: true,
       joinedAt: new Date().toISOString(),
+      status: "active", // ✅ Add this line
     },
   ],
 

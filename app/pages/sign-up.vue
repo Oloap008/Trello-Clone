@@ -117,10 +117,6 @@
 </template>
 
 <script setup>
-definePageMeta({
-  middleware: "guest",
-});
-
 const authStore = useAuthStore();
 
 const form = ref({

@@ -20,49 +20,11 @@
           </p>
         </div>
       </div>
-
-      <!-- Workspace Navigation Tabs -->
-      <div class="border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8">
-          <NuxtLink
-            :to="routes.workspaceHome(workspace!)"
-            class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
-            active-class="border-blue-500 text-blue-600"
-          >
-            <UIcon name="i-heroicons-squares-2x2" class="w-4 h-4 mr-2 inline" />
-            Boards
-          </NuxtLink>
-
-          <NuxtLink
-            :to="routes.workspaceMembers(workspace!)"
-            class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
-            active-class="border-blue-500 text-blue-600"
-          >
-            <UIcon name="i-heroicons-users" class="w-4 h-4 mr-2 inline" />
-            Members
-          </NuxtLink>
-
-          <NuxtLink
-            :to="routes.workspaceSettings(workspace!)"
-            class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
-            active-class="border-blue-500 text-blue-600"
-          >
-            <UIcon name="i-heroicons-cog-6-tooth" class="w-4 h-4 mr-2 inline" />
-            Settings
-          </NuxtLink>
-        </nav>
-      </div>
     </div>
 
     <!-- Boards Section -->
     <section>
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-semibold text-gray-900">Boards</h2>
-        <UButton v-if="canCreateBoard" color="blue" @click="handleCreateBoard">
-          <UIcon name="i-heroicons-plus" class="w-4 h-4 mr-2" />
-          Create Board
-        </UButton>
-      </div>
+      <h2 class="text-xl font-semibold text-gray-900 mb-6">Boards</h2>
 
       <div
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
@@ -72,25 +34,11 @@
           v-for="board in workspaceBoards"
           :key="board.id"
           :board="board"
-          @click="navigateToBoard"
+          @click="navigateToBoard(board)"
         />
 
         <!-- Create New Board Card -->
-        <div
-          v-if="canCreateBoard"
-          class="h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors group"
-          @click="handleCreateBoard"
-        >
-          <div class="text-center">
-            <UIcon
-              name="i-heroicons-plus"
-              class="w-6 h-6 text-gray-400 group-hover:text-gray-600 mx-auto mb-1"
-            />
-            <p class="text-sm text-gray-600 group-hover:text-gray-800">
-              Create new board
-            </p>
-          </div>
-        </div>
+        <CreateBoardPopover />
       </div>
     </section>
   </div>
@@ -99,6 +47,7 @@
 <script setup lang="ts">
 import type { Workspace } from "~/types";
 import { parseWorkspaceSlug, routes } from "~/utils/routes";
+import type { Board } from "~~/shared/types/globals";
 
 // Use the app layout
 definePageMeta({
@@ -191,8 +140,13 @@ const getWorkspaceColor = (workspaceId: number) => {
   return colors[workspaceId % colors.length];
 };
 
-const navigateToBoard = (boardId: number) => {
-  navigateTo(routes.board(boardId));
+const navigateToBoard = (board: Board) => {
+  navigateTo(
+    `/board/${board.id}/${board.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")}`
+  );
 };
 
 const handleCreateBoard = () => {

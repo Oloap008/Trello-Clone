@@ -41,109 +41,55 @@
             </h3>
           </div>
 
-          <div class="divide-y divide-gray-200">
-            <div
-              v-for="member in workspaceMembers"
-              :key="member.id"
-              class="px-6 py-4 flex items-center justify-between"
-            >
-              <div class="flex items-center space-x-4">
-                <UAvatar
-                  :alt="member.user.firstName + ' ' + member.user.lastName"
-                  size="md"
-                  :ui="{
-                    background: 'bg-gradient-to-r from-blue-500 to-purple-500',
-                  }"
-                >
-                  {{ getUserInitials(member.user) }}
-                </UAvatar>
-                <div>
-                  <h4 class="font-medium text-gray-900">
-                    {{ member.user.firstName }} {{ member.user.lastName }}
-                    <span
-                      v-if="member.userId === currentUser?.id"
-                      class="text-sm text-gray-500"
-                      >(You)</span
-                    >
-                  </h4>
-                  <p class="text-sm text-gray-500">{{ member.user.email }}</p>
-                </div>
-              </div>
-
-              <div class="flex items-center space-x-4">
-                <!-- Role Badge -->
-                <UBadge
-                  :color="member.role === 'admin' ? 'blue' : 'gray'"
-                  variant="subtle"
-                >
-                  {{ member.role === "admin" ? "Admin" : "Member" }}
-                </UBadge>
-
-                <!-- Member Actions -->
-                <UDropdown
-                  v-if="canManageMembers && member.userId !== currentUser?.id"
-                >
-                  <UButton variant="ghost" size="sm" square>
-                    <UIcon name="i-heroicons-ellipsis-horizontal" />
-                  </UButton>
-
-                  <template #panel="{ close }">
-                    <div class="p-1">
-                      <UButton
-                        variant="ghost"
-                        size="sm"
-                        class="w-full justify-start"
-                        @click="
-                          changeMemberRole(member);
-                          close();
-                        "
-                      >
-                        <UIcon
-                          name="i-heroicons-user-circle"
-                          class="w-4 h-4 mr-2"
-                        />
-                        {{
-                          member.role === "admin" ? "Make Member" : "Make Admin"
-                        }}
-                      </UButton>
-
-                      <UButton
-                        variant="ghost"
-                        size="sm"
-                        class="w-full justify-start text-red-600 hover:text-red-800"
-                        @click="
-                          removeMember(member);
-                          close();
-                        "
-                      >
-                        <UIcon name="i-heroicons-trash" class="w-4 h-4 mr-2" />
-                        Remove from workspace
-                      </UButton>
-                    </div>
-                  </template>
-                </UDropdown>
+          <div
+            v-for="member in workspaceMembers"
+            :key="member.id"
+            class="px-6 py-4 flex items-center justify-between"
+          >
+            <div class="flex items-center space-x-4">
+              <UAvatar
+                :alt="member.user.firstName + ' ' + member.user.lastName"
+                size="md"
+                :ui="{
+                  background: 'bg-gradient-to-r from-blue-500 to-purple-500',
+                }"
+              >
+                {{ getUserInitials(member.user) }}
+              </UAvatar>
+              <div>
+                <h4 class="font-medium text-gray-900">
+                  {{ member.user.firstName }} {{ member.user.lastName }}
+                  <span
+                    v-if="member.userId === currentUser?.id"
+                    class="text-sm text-gray-500"
+                    >(You)</span
+                  >
+                  <span
+                    v-if="member.userId === workspace?.ownerId"
+                    class="text-sm text-blue-600 font-medium"
+                    >(Owner)</span
+                  >
+                </h4>
+                <p class="text-sm text-gray-500">{{ member.user.email }}</p>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Member Permissions Info -->
-        <div class="mt-6 bg-gray-50 rounded-lg p-4">
-          <h4 class="font-medium text-gray-900 mb-2">Permission levels</h4>
-          <div class="space-y-2 text-sm text-gray-600">
-            <div class="flex items-start space-x-2">
-              <UBadge color="blue" variant="subtle" size="xs">Admin</UBadge>
-              <span
-                >Can manage workspace settings, invite members, create boards,
-                and delete the workspace.</span
+            <div class="flex items-center space-x-4">
+              <!-- Role Badge -->
+              <UBadge :color="getBadgeColor(member)" variant="subtle">
+                {{ getRoleDisplay(member) }}
+              </UBadge>
+
+              <!-- Member Actions -->
+              <UDropdownMenu
+                v-if="canManageMember(member)"
+                :items="getMemberActions(member)"
+                :ui="{ content: 'w-48' }"
               >
-            </div>
-            <div class="flex items-start space-x-2">
-              <UBadge color="gray" variant="subtle" size="xs">Member</UBadge>
-              <span
-                >Can view and collaborate on boards. Additional permissions can
-                be set per member.</span
-              >
+                <UButton variant="ghost" size="sm" square>
+                  <UIcon name="i-heroicons-ellipsis-horizontal" />
+                </UButton>
+              </UDropdownMenu>
             </div>
           </div>
         </div>
@@ -170,18 +116,25 @@
 </template>
 
 <script setup lang="ts">
-import type { Workspace, WorkspaceMember, User } from "~/types";
+import type {
+  Workspace,
+  WorkspaceMember,
+  User,
+  DropdownMenuItem,
+} from "~/types";
 import { parseWorkspaceSlug } from "~/utils/routes";
 
 // Use the app layout and require authentication
 definePageMeta({
   layout: "home",
-  middleware: "auth",
 });
 
 // Get stores
 const dataStore = useDataStore();
 const authStore = useAuthStore();
+
+// Add toast composable
+const toast = useToast();
 
 // Get route params
 const route = useRoute();
@@ -204,6 +157,21 @@ const workspace = computed(() => {
 const workspaceMembers = computed(() => {
   if (!dataStore.isLoaded || !workspace.value) return [];
   return dataStore.getWorkspaceMembers(workspaceId);
+});
+
+// Get current user's role in the workspace
+const currentUserRole = computed(() => {
+  if (!workspace.value || !currentUserId.value) return null;
+
+  // Check if owner
+  if (workspace.value.ownerId === currentUserId.value) return "owner";
+
+  // Check member role
+  const member = workspaceMembers.value.find(
+    (m) => m.userId === currentUserId.value
+  );
+
+  return member?.role || null;
 });
 
 // Check permissions
@@ -235,6 +203,66 @@ const canManageMembers = computed(() => {
   return member?.role === "admin";
 });
 
+// Check if current user can manage this specific member
+const canManageMember = (member) => {
+  // Can't manage yourself
+  if (member.userId === currentUserId.value) return false;
+
+  // Can't manage the workspace owner
+  if (member.userId === workspace.value?.ownerId) return false;
+
+  // Only owners and admins can manage members
+  if (!canManageMembers.value) return false;
+
+  return true;
+};
+
+// Generate dropdown actions based on member and current user permissions
+const getMemberActions = (member): DropdownMenuItem[] => {
+  const actions = [];
+
+  // Role change action (only for non-owners)
+  if (member.userId !== workspace.value?.ownerId) {
+    actions.push({
+      label: member.role === "admin" ? "Make Member" : "Make Admin",
+      icon: "i-heroicons-user-circle",
+      onSelect: () => changeMemberRole(member),
+    });
+  }
+
+  // Remove action with proper permissions
+  const canRemove =
+    workspace.value?.ownerId === currentUserId.value ||
+    (currentUserRole.value === "admin" && member.role === "member");
+
+  if (canRemove) {
+    actions.push({
+      label: "Remove from workspace",
+      icon: "i-heroicons-trash",
+      color: "error",
+      onSelect: () => removeMember(member),
+    });
+  }
+
+  return actions;
+};
+
+// Get role display text
+const getRoleDisplay = (member) => {
+  if (member.userId === workspace.value?.ownerId) {
+    return "Owner";
+  }
+  return member.role === "admin" ? "Admin" : "Member";
+};
+
+// Get badge color based on role
+const getBadgeColor = (member) => {
+  if (member.userId === workspace.value?.ownerId) {
+    return "blue";
+  }
+  return member.role === "admin" ? "green" : "gray";
+};
+
 // Methods
 const inviteModal = ref(null);
 
@@ -258,20 +286,103 @@ const handleMembersInvited = (invitedUsers) => {
   // The workspace members list will automatically update since it's reactive
 };
 
-const changeMemberRole = (member) => {
+// Updated changeMemberRole method with toast notifications
+const changeMemberRole = async (member) => {
+  // Don't allow role changes for workspace owner
+  if (member.userId === workspace.value?.ownerId) {
+    toast.add({
+      title: "Cannot Change Owner Role",
+      description: "The workspace owner role cannot be changed",
+      color: "warning",
+      icon: "i-heroicons-exclamation-triangle",
+    });
+    return;
+  }
+
   const newRole = member.role === "admin" ? "member" : "admin";
 
-  dataStore.update("workspaceMembers", member.id, {
-    role: newRole,
-  });
+  try {
+    // Use the data store to update the member role
+    dataStore.update("workspaceMembers", member.id, {
+      role: newRole,
+    });
 
-  console.log(`Changed ${member.user.email} role to ${newRole}`);
+    toast.add({
+      title: "Role Updated",
+      description: `${member.user.firstName} ${member.user.lastName} is now ${
+        newRole === "admin" ? "an admin" : "a member"
+      }`,
+      color: "success",
+      icon: "i-heroicons-check-circle",
+    });
+  } catch (error) {
+    console.error("Role change failed:", error);
+    toast.add({
+      title: "Role Update Failed",
+      description: "There was an error updating the member role",
+      color: "error",
+      icon: "i-heroicons-exclamation-triangle",
+    });
+  }
 };
 
-const removeMember = (member) => {
-  // Remove member from workspace
-  dataStore.remove("workspaceMembers", member.id);
-  console.log(`Removed ${member.user.email} from workspace`);
+// Updated removeMember method with proper error handling and toasts
+const removeMember = async (member) => {
+  // Don't allow removal of workspace owner
+  if (member.userId === workspace.value?.ownerId) {
+    toast.add({
+      title: "Cannot Remove Owner",
+      description: "The workspace owner cannot be removed",
+      color: "warning",
+      icon: "i-heroicons-exclamation-triangle",
+    });
+    return;
+  }
+
+  // Check permissions - Fixed to use currentUserId.value consistently
+  const canRemove =
+    workspace.value?.ownerId === currentUserId.value ||
+    (currentUserRole.value === "admin" && member.role === "member");
+
+  if (!canRemove) {
+    toast.add({
+      title: "Insufficient Permissions",
+      description: "You do not have permission to remove this member",
+      color: "warning",
+      icon: "i-heroicons-exclamation-triangle",
+    });
+    return;
+  }
+
+  try {
+    // Show loading toast
+    toast.add({
+      title: "Removing Member",
+      description: `Removing ${member.user.firstName} ${member.user.lastName} from workspace...`,
+      color: "info",
+      icon: "i-heroicons-arrow-path",
+      duration: 2000,
+    });
+
+    // Use the data store to remove the member (soft delete)
+    dataStore.remove("workspaceMembers", member.id);
+
+    // Success toast
+    toast.add({
+      title: "Member Removed",
+      description: `${member.user.firstName} ${member.user.lastName} has been removed from the workspace`,
+      color: "success",
+      icon: "i-heroicons-check-circle",
+    });
+  } catch (error) {
+    console.error("Member removal failed:", error);
+    toast.add({
+      title: "Removal Failed",
+      description: "There was an error removing the member. Please try again.",
+      color: "error",
+      icon: "i-heroicons-exclamation-triangle",
+    });
+  }
 };
 
 // Auth check

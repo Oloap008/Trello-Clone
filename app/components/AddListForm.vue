@@ -12,22 +12,24 @@
       </UButton>
     </div>
 
+    <!-- Add List Form -->
     <div v-else class="bg-gray-200 rounded-xl p-3" @click.stop>
       <textarea
-        v-model="title"
-        ref="inputRef"
+        :value="newListTitle"
+        @input="$emit('update-title', $event.target.value)"
+        :ref="(el) => $emit('set-list-input-ref', el)"
         placeholder="Enter list title..."
         class="w-full p-3 text-sm border-none rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm mb-2"
         rows="2"
-        @keydown.escape="handleCancel"
-        @keydown.enter="handleEnter"
-      />
+        @keydown.escape="$emit('cancel')"
+        @keydown.enter="$emit('handle-enter', $event)"
+      ></textarea>
       <div class="flex items-center gap-2">
         <UButton
           color="primary"
           size="sm"
-          @click="handleAdd"
-          :disabled="!title.trim()"
+          @click="$emit('add-list')"
+          :disabled="!newListTitle.trim()"
         >
           Add list
         </UButton>
@@ -35,7 +37,7 @@
           variant="ghost"
           size="sm"
           icon="i-heroicons-x-mark"
-          @click="handleCancel"
+          @click="$emit('cancel')"
         />
       </div>
     </div>
@@ -45,47 +47,17 @@
 <script setup lang="ts">
 interface Props {
   isAdding: boolean;
+  newListTitle: string;
 }
 
-interface Emits {
-  (e: "start-adding"): void;
-  (e: "add-list", title: string): void;
-  (e: "cancel"): void;
-}
+defineProps<Props>();
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
-
-const title = ref("");
-const inputRef = ref<HTMLTextAreaElement>();
-
-const handleAdd = () => {
-  if (title.value.trim()) {
-    emit("add-list", title.value.trim());
-    title.value = "";
-  }
-};
-
-const handleCancel = () => {
-  title.value = "";
-  emit("cancel");
-};
-
-const handleEnter = (event: KeyboardEvent) => {
-  if (!event.shiftKey) {
-    event.preventDefault();
-    handleAdd();
-  }
-};
-
-watch(
-  () => props.isAdding,
-  (isAdding) => {
-    if (isAdding) {
-      nextTick(() => {
-        inputRef.value?.focus();
-      });
-    }
-  }
-);
+defineEmits<{
+  "start-adding": [];
+  "update-title": [value: string];
+  "add-list": [];
+  cancel: [];
+  "handle-enter": [event: KeyboardEvent];
+  "set-list-input-ref": [el: HTMLTextAreaElement | null];
+}>();
 </script>

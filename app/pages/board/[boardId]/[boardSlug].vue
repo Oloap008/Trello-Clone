@@ -1,526 +1,139 @@
 <template>
-  <div
-    v-if="isAppReady && currentBoard"
-    class="p-6 bg-gray-100 min-h-screen flex flex-col"
-    @click="handleBackgroundClick"
-    @dragover="handleGlobalDragOver"
-    :style="{
-      backgroundColor: currentBoard.color || '#f3f4f6',
-      backgroundImage: currentBoard.backgroundImage
-        ? `url(${currentBoard.backgroundImage})`
-        : 'none',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }"
-  >
-    <!-- Board Container -->
-    <div class="flex flex-1 gap-4 overflow-x-auto pb-4" id="lists-container">
-      <!-- Lists -->
-      <div
-        v-for="list in boardLists"
-        :key="list.id"
-        class="w-72 bg-gray-200 rounded-xl p-3 flex-shrink-0 flex flex-col h-full"
-        :ref="(el) => setListRef(el, list.id.toString())"
-        @click.stop
-        :data-list-id="list.id"
-        draggable="true"
-        @dragstart="handleListDragStart($event, list)"
-        @dragend="handleListDragEnd"
-        @dragover="handleListDragOver"
-        @drop="handleListDrop($event, list.id)"
-        :class="{
-          'opacity-50': draggedList?.id === list.id,
-          'border-2 border-green-400':
-            closestListId === list.id.toString() && draggedList,
-        }"
-        @mousedown="handleListMouseDown"
-      >
-        <!-- List Header -->
-        <div class="flex items-center justify-between mb-3 flex-shrink-0">
-          <!-- Editable Title -->
-          <div class="flex-1 mr-2">
-            <input
-              v-if="editingListId === list.id"
-              v-model="editingListTitle"
-              @blur="saveListTitle(list.id)"
-              @keydown.enter="saveListTitle(list.id)"
-              @keydown.escape="cancelListEdit(list.id)"
-              :ref="(el) => setTitleInputRef(el, list.id.toString())"
-              class="w-full text-sm font-medium text-gray-800 bg-white border-2 border-blue-500 rounded px-2 py-1 focus:outline-none"
-              maxlength="512"
-            />
-            <h2
-              v-else
-              @click="startEditingListTitle(list.id, list.name)"
-              class="text-sm font-medium text-gray-800 px-2 py-1 rounded hover:bg-gray-300 cursor-pointer"
-            >
-              {{ list.name }}
-            </h2>
-          </div>
+  <div>
+    <!-- Board Header -->
+    <BoardHeader
+      :board="currentBoard"
+      :board-members="boardMembers"
+      :current-user-id="currentUserId"
+      :is-filter-active="isFilterActive"
+      @show-archive="handleShowArchive"
+      @update-board-name="handleUpdateBoardName"
+      @update-board-visibility="handleUpdateBoardVisibility"
+      @invite-members="handleInviteMembers"
+      @toggle-filter="handleToggleFilter"
+      @filter-change="handleFilterChange"
+      @export-board="handleExportBoard"
+      @close-board="handleCloseBoard"
+      @go-to-boards="handleGoToBoards"
+    />
 
-          <div class="flex items-center gap-1">
-            <UButton
-              variant="ghost"
-              size="xs"
-              icon="i-heroicons-arrows-pointing-out"
-              class="text-gray-600 hover:bg-gray-300"
-            />
-            <UButton
-              variant="ghost"
-              size="xs"
-              icon="i-heroicons-ellipsis-horizontal"
-              class="text-gray-600 hover:bg-gray-300"
-              @click="deleteList(list.id)"
-            />
-          </div>
-        </div>
+    <!-- Board Content -->
+    <div
+      v-if="isAppReady && currentBoard"
+      class="p-6 bg-gray-100 min-h-screen flex flex-col"
+      @click="handleBackgroundClick"
+      @dragover="handleGlobalDragOver"
+      :style="{
+        backgroundColor: currentBoard.color || '#f3f4f6',
+        backgroundImage: currentBoard.backgroundImage
+          ? `url(${currentBoard.backgroundImage})`
+          : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }"
+    >
+      <!-- Board Container -->
+      <div class="flex flex-1 gap-4 overflow-x-auto pb-4" id="lists-container">
+        <!-- Lists -->
+        <BoardList
+          v-for="list in boardLists"
+          :key="list.id"
+          :list="list"
+          :board-id="boardId"
+          :current-user-id="currentUserId"
+          :list-cards="getListCards(list.id)"
+          :editing-list-id="editingListId"
+          :editing-list-title="editingListTitle"
+          :adding-card-to-list="addingCardToList"
+          :new-card-title="newCardTitle"
+          :dragged-card="draggedCard"
+          :dragged-list="draggedList"
+          :placeholder-list-id="placeholderListId"
+          :placeholder-index="placeholderIndex"
+          :closest-list-id="closestListId"
+          @start-editing-title="startEditingListTitle"
+          @update-editing-title="editingListTitle = $event"
+          @save-title="saveListTitle"
+          @cancel-edit="cancelListEdit"
+          @delete-list="deleteList"
+          @start-adding-card="startAddingCard"
+          @update-card-title="newCardTitle = $event"
+          @add-card="addCard"
+          @cancel-add-card="cancelAddCard"
+          @handle-enter="handleEnter"
+          @toggle-complete="toggleComplete"
+          @open-card="openCardModal"
+          @card-drag-start="handleCardDragStart"
+          @card-drag-end="handleCardDragEnd"
+          @card-drag-over="handleCardDragOver"
+          @card-drop="handleCardDrop"
+          @list-drag-start="handleListDragStart"
+          @list-drag-end="handleListDragEnd"
+          @list-drag-over="handleListDragOver"
+          @list-drop="handleListDrop"
+          @list-mouse-down="handleListMouseDown"
+          @set-list-ref="setListRef"
+          @set-title-input-ref="setTitleInputRef"
+          @set-card-input-ref="setCardInputRef"
+          @archive-card="handleArchiveCard"
+          @archive-list="handleArchiveList"
+          @archive-all-cards="handleArchiveAllCards"
+        />
 
-        <!-- Cards Container -->
-        <div
-          class="flex-1 min-h-[20px] max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200"
-          :data-list-id="list.id"
-          @drop="handleCardDrop($event, list.id)"
-          @dragover="handleCardDragOver"
-        >
-          <div class="space-y-2 mb-2">
-            <template
-              v-for="(card, index) in getListCards(list.id)"
-              :key="card.id"
-            >
-              <!-- Insert placeholder before the current card if needed -->
-              <div
-                v-if="
-                  draggedCard &&
-                  placeholderListId === list.id.toString() &&
-                  placeholderIndex === index
-                "
-                class="h-10 bg-gray-300 rounded-lg opacity-50"
-              ></div>
-
-              <!-- Card -->
-              <div
-                :data-card-id="card.id"
-                :data-list-id="list.id"
-                draggable="true"
-                @dragstart="handleCardDragStart($event, card, list.id)"
-                @dragend="handleCardDragEnd"
-                class="bg-white rounded-lg p-3 shadow-sm transition-all cursor-pointer group border-2 border-white hover:border-2 hover:border-blue-400"
-                @click="openCardModal(card)"
-              >
-                <!-- Card content -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2 flex-1 min-w-0">
-                    <!-- Checkbox -->
-                    <div
-                      @click.stop="toggleComplete(card.id)"
-                      class="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center cursor-pointer hover:border-gray-600 transition-all flex-shrink-0"
-                      :class="{
-                        'bg-green-500 border-green-500': card.isComplete,
-                        'opacity-0 group-hover:opacity-100': !card.isComplete,
-                        'opacity-100': card.isComplete,
-                      }"
-                    >
-                      <UIcon
-                        v-if="card.isComplete"
-                        name="i-heroicons-check"
-                        class="w-3 h-3 text-white"
-                        draggable="false"
-                      />
-                    </div>
-                    <span
-                      class="text-sm text-gray-800 transition-transform duration-200 ease-out"
-                      :class="{
-                        'translate-x-0': card.isComplete,
-                        'group-hover:translate-x-0 -translate-x-6':
-                          !card.isComplete,
-                      }"
-                      >{{ card.title }}</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </template>
-
-            <!-- Insert placeholder at the end if needed -->
-            <div
-              v-if="
-                draggedCard &&
-                placeholderListId === list.id.toString() &&
-                placeholderIndex === getListCards(list.id).length
-              "
-              class="h-10 bg-gray-300 rounded-lg opacity-50"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Add Card Section - Fixed at bottom -->
-        <div class="flex-shrink-0 mt-2">
-          <div v-if="addingCardToList !== list.id">
-            <UButton
-              variant="ghost"
-              size="sm"
-              class="w-full justify-start text-gray-600 hover:bg-gray-300 rounded-lg"
-              @click="startAddingCard(list.id)"
-            >
-              <UIcon name="i-heroicons-plus" class="w-4 h-4 mr-2" />
-              Add a card
-            </UButton>
-          </div>
-
-          <!-- Add Card Form -->
-          <div v-else class="space-y-2" @click.stop>
-            <textarea
-              v-model="newCardTitle"
-              :ref="(el) => setCardInputRef(el, list.id.toString())"
-              placeholder="Enter a title or paste a link"
-              class="w-full p-3 text-sm border-none rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-              rows="3"
-              @keydown.escape="cancelAddCard"
-              @keydown.enter="handleEnter"
-            ></textarea>
-            <div class="flex items-center gap-2">
-              <UButton
-                color="primary"
-                size="sm"
-                @click="addCard(list.id)"
-                :disabled="!newCardTitle.trim()"
-              >
-                Add card
-              </UButton>
-              <UButton
-                variant="ghost"
-                size="sm"
-                icon="i-heroicons-x-mark"
-                @click="cancelAddCard"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add List Button/Form -->
-      <div class="w-72 flex-shrink-0">
-        <div v-if="!isAddingList">
-          <UButton
-            variant="ghost"
-            size="sm"
-            class="w-full justify-start text-gray-600 hover:bg-gray-300 rounded-lg bg-white/60 backdrop-blur-sm h-12"
-            @click.stop="startAddingList"
-          >
-            <UIcon name="i-heroicons-plus" class="w-4 h-4 mr-2" />
-            Add another list
-          </UButton>
-        </div>
-
-        <!-- Add List Form -->
-        <div v-else class="bg-gray-200 rounded-xl p-3" @click.stop>
-          <textarea
-            v-model="newListTitle"
-            ref="listInput"
-            placeholder="Enter list title..."
-            class="w-full p-3 text-sm border-none rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm mb-2"
-            rows="2"
-            @keydown.escape="cancelAddList"
-            @keydown.enter="handleListEnter"
-          ></textarea>
-          <div class="flex items-center gap-2">
-            <UButton
-              color="primary"
-              size="sm"
-              @click="addList"
-              :disabled="!newListTitle.trim()"
-            >
-              Add list
-            </UButton>
-            <UButton
-              variant="ghost"
-              size="sm"
-              icon="i-heroicons-x-mark"
-              @click="cancelAddList"
-            />
-          </div>
-        </div>
+        <!-- Add List Button/Form -->
+        <AddListForm
+          :is-adding="isAddingList"
+          :new-list-title="newListTitle"
+          @start-adding="startAddingList"
+          @update-title="newListTitle = $event"
+          @add-list="addList"
+          @cancel="cancelAddList"
+          @handle-enter="handleListEnter"
+          @set-list-input-ref="listInput = $event"
+        />
       </div>
     </div>
+
+    <!-- Board Not Found -->
+    <BoardNotFound v-else-if="!currentBoard && isAppReady" />
+
+    <!-- Loading State -->
+    <BoardLoading v-else />
 
     <!-- Card Modal -->
-    <div
-      v-if="isModalOpen"
-      class="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4"
-      @click="closeModal"
-    >
-      <!-- Backdrop -->
-      <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+    <CardModal
+      :is-open="isModalOpen"
+      :selected-card="selectedCard"
+      :selected-card-title="selectedCardTitle"
+      :is-editing-title="isEditingCardTitle"
+      :board-id="boardId"
+      :current-list-id="currentListIdAsNumber"
+      :card-activities="cardActivities"
+      :new-comment="newComment"
+      @close="closeModal"
+      @card-moved="handleCardMoved"
+      @member-added="handleMemberAdded"
+      @member-removed="handleMemberRemoved"
+      @toggle-complete="toggleCardComplete"
+      @start-editing-title="startEditingCardTitle"
+      @update-title="selectedCardTitle = $event"
+      @save-title="saveCardTitle"
+      @cancel-title-edit="cancelCardTitleEdit"
+      @update-comment="newComment = $event"
+      @set-title-input-ref="cardTitleInput = $event"
+    />
 
-      <!-- Modal Content -->
-      <div
-        class="relative bg-white rounded-lg w-full max-w-[1080px] max-h-[90vh] overflow-hidden shadow-xl"
-        @click.stop
-      >
-        <!-- Modal Header -->
-        <div
-          class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200"
-        >
-          <div class="flex items-center">
-            <select
-              class="bg-transparent text-sm font-medium text-gray-700 border-none focus:outline-none cursor-pointer pr-6"
-            >
-              <option>{{ getCurrentListTitle() }}</option>
-            </select>
-            <UIcon
-              name="i-heroicons-chevron-down"
-              class="w-4 h-4 text-gray-500 -ml-5"
-            />
-          </div>
-
-          <div class="flex items-center gap-2">
-            <UButton
-              variant="ghost"
-              size="xs"
-              class="text-gray-500 hover:text-gray-700"
-            >
-              <UIcon
-                name="i-heroicons-arrow-top-right-on-square"
-                class="w-4 h-4"
-              />
-            </UButton>
-            <UButton
-              variant="ghost"
-              size="xs"
-              class="text-gray-500 hover:text-gray-700"
-            >
-              <UIcon name="i-heroicons-arrows-pointing-out" class="w-4 h-4" />
-            </UButton>
-            <UButton
-              variant="ghost"
-              size="xs"
-              class="text-gray-500 hover:text-gray-700"
-            >
-              <UIcon name="i-heroicons-ellipsis-horizontal" class="w-4 h-4" />
-            </UButton>
-            <UButton
-              variant="ghost"
-              size="xs"
-              @click="closeModal"
-              class="text-gray-500 hover:text-gray-700"
-            >
-              <UIcon name="i-heroicons-x-mark" class="w-4 h-4" />
-            </UButton>
-          </div>
-        </div>
-
-        <!-- Modal Body -->
-        <div class="flex h-full">
-          <!-- Left Column - Main Content -->
-          <div
-            class="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
-          >
-            <!-- Card Title with Checkbox -->
-            <div class="flex items-center gap-3 mb-6">
-              <div
-                @click="toggleCardComplete"
-                class="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center cursor-pointer hover:border-gray-600 transition-all flex-shrink-0"
-                :class="{
-                  'bg-green-500 border-green-500': selectedCard?.isComplete,
-                  'bg-white': !selectedCard?.isComplete,
-                }"
-              >
-                <UIcon
-                  v-if="selectedCard?.isComplete"
-                  name="i-heroicons-check"
-                  class="w-3 h-3 text-white"
-                />
-              </div>
-
-              <div class="flex-1 min-w-0">
-                <input
-                  v-if="isEditingCardTitle"
-                  v-model="selectedCardTitle"
-                  @blur="saveCardTitle"
-                  @keydown.enter="saveCardTitle"
-                  @keydown.escape="cancelCardTitleEdit"
-                  ref="cardTitleInput"
-                  class="w-full text-xl font-medium text-gray-900 bg-white border-none focus:outline-none p-0 m-0"
-                />
-                <h1
-                  v-else
-                  @click="startEditingCardTitle"
-                  class="text-xl font-medium text-gray-900 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded -ml-2"
-                >
-                  {{ selectedCard?.title }}
-                </h1>
-              </div>
-            </div>
-
-            <!-- Action Buttons Row -->
-            <div class="flex flex-wrap gap-2 mb-8">
-              <button
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                <UIcon name="i-heroicons-plus" class="w-4 h-4" />
-                Add
-              </button>
-              <button
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                <UIcon name="i-heroicons-tag" class="w-4 h-4" />
-                Labels
-              </button>
-              <button
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-                Dates
-              </button>
-              <button
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                <UIcon name="i-heroicons-list-bullet" class="w-4 h-4" />
-                Checklist
-              </button>
-              <button
-                class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                <UIcon name="i-heroicons-user-group" class="w-4 h-4" />
-                Members
-              </button>
-            </div>
-
-            <!-- Description Section -->
-            <div class="mb-8">
-              <div class="flex items-center gap-3 mb-4">
-                <UIcon
-                  name="i-heroicons-bars-3-bottom-left"
-                  class="w-5 h-5 text-gray-600"
-                />
-                <h3 class="text-base font-semibold text-gray-800">
-                  Description
-                </h3>
-              </div>
-
-              <div class="ml-8">
-                <div
-                  v-if="selectedCard?.description"
-                  class="p-3 text-sm rounded-sm text-gray-700 border border-gray-200"
-                >
-                  {{ selectedCard.description }}
-                </div>
-                <div
-                  v-else
-                  class="w-full p-4 text-sm border border-gray-300 rounded-sm cursor-pointer hover:bg-gray-50 text-gray-500 bg-gray-50"
-                >
-                  Add a more detailed description...
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column - Activity -->
-          <div
-            class="w-full sm:w-[428px] border-l border-gray-200 bg-gray-50 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
-          >
-            <div class="p-4">
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                  <UIcon
-                    name="i-heroicons-chat-bubble-left-right"
-                    class="w-5 h-5 text-gray-600"
-                  />
-                  <h3 class="text-base font-medium text-gray-800">
-                    Comments and activity
-                  </h3>
-                </div>
-                <button
-                  class="text-sm text-gray-600 hover:text-gray-800 font-medium"
-                >
-                  Show details
-                </button>
-              </div>
-
-              <!-- Comment Input -->
-              <textarea
-                v-model="newComment"
-                placeholder="Write a comment..."
-                class="w-full p-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white mb-6"
-                rows="3"
-              ></textarea>
-
-              <!-- Activity List -->
-              <div
-                v-for="activity in cardActivities"
-                :key="activity.id"
-                class="flex gap-3 mb-4"
-              >
-                <div
-                  class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
-                >
-                  {{ getUserInitials(activity.userId) }}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm text-gray-800">
-                    <span class="font-medium">{{
-                      getUserName(activity.userId)
-                    }}</span>
-                    <span class="text-gray-600">{{
-                      activity.description
-                    }}</span>
-                  </div>
-                  <button class="text-xs text-blue-600 hover:underline mt-1">
-                    {{ formatDate(activity.createdAt) }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Default Activity if no activities exist -->
-              <div v-if="cardActivities.length === 0" class="flex gap-3">
-                <div
-                  class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
-                >
-                  PH
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm text-gray-800">
-                    <span class="font-medium">Paolo Henry Co</span>
-                    <span class="text-gray-600">
-                      added this card to {{ getCurrentListTitle() }}</span
-                    >
-                  </div>
-                  <button class="text-xs text-blue-600 hover:underline mt-1">
-                    1 hour ago
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Board not found state -->
-  <div
-    v-else-if="!currentBoard && isAppReady"
-    class="p-6 bg-gray-100 min-h-screen flex items-center justify-center"
-  >
-    <div class="text-center">
-      <p class="text-gray-600">
-        Board not found or you don't have access to this board.
-      </p>
-      <UButton class="mt-4" @click="$router.back()">Go Back</UButton>
-    </div>
-  </div>
-
-  <!-- Loading State -->
-  <div
-    v-else
-    class="p-6 bg-gray-100 min-h-screen flex items-center justify-center"
-  >
-    <div class="text-center">
-      <div
-        class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent mb-4"
-      ></div>
-      <p class="text-gray-600">Loading your board...</p>
-    </div>
+    <ArchivedItems
+      :is-open="showArchivePopover"
+      :archived-cards="archivedCards"
+      :archived-lists="archivedLists"
+      :board-id="boardId || 0"
+      @close="showArchivePopover = false"
+      @restore-card="handleRestoreCard"
+      @delete-card="handleDeleteCard"
+      @restore-list="handleRestoreList"
+      @delete-list="handleDeleteList"
+    />
   </div>
 </template>
 
@@ -563,23 +176,154 @@ const isAppReady = ref(false);
 onMounted(() => {
   const checkReady = () => {
     if (dataStore.isLoaded) {
-      // Add a small delay to ensure users can see the loading state
       setTimeout(() => {
         isAppReady.value = true;
-      }, 300); // 300ms delay
+      }, 300);
     } else {
-      setTimeout(checkReady, 50); // Check again in 50ms
+      setTimeout(checkReady, 50);
     }
   };
   checkReady();
 });
 
-// Get cards for a specific list
-const getListCards = (listId: number) => {
-  return dataStore.getCardsForList(listId);
+// Filter state
+const activeFilters = ref({
+  keyword: "",
+  noMembers: false,
+  assignedToMe: false,
+  members: [] as number[],
+  cardStatus: "" as "" | "completed" | "incomplete",
+  activity: "" as "" | "lastWeek" | "twoWeeks" | "fourWeeks" | "noActivity",
+});
+
+// Get current user ID from auth store
+const authStore = useAuthStore();
+const currentUserId = computed(() => {
+  const userId = authStore.user?.id;
+  return userId ? parseInt(userId) : 1;
+});
+
+// Get board members using the data store
+const boardMembers = computed(() => {
+  if (!boardId.value) return [];
+  return dataStore.getBoardMembers(boardId.value);
+});
+
+const isFilterActive = computed(() => {
+  return (
+    activeFilters.value.keyword.trim() !== "" ||
+    activeFilters.value.noMembers ||
+    activeFilters.value.assignedToMe ||
+    activeFilters.value.members.length > 0 ||
+    activeFilters.value.cardStatus !== "" ||
+    activeFilters.value.activity !== ""
+  );
+});
+
+// Helper function to check if card was active in given time period
+const isCardActiveInPeriod = (cardId: number, daysAgo: number): boolean => {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+
+  const activities = dataStore.cardActivities.value.filter(
+    (activity) => activity.cardId === cardId
+  );
+
+  return activities.some(
+    (activity) => new Date(activity.createdAt) > cutoffDate
+  );
 };
 
-// Component state
+// Filter cards function
+const filterCards = (cards: Card[]): Card[] => {
+  if (!isFilterActive.value) {
+    return cards;
+  }
+
+  return cards.filter((card) => {
+    let includeCard = true;
+
+    // Keyword filter
+    if (activeFilters.value.keyword.trim()) {
+      const keyword = activeFilters.value.keyword.toLowerCase();
+      const matchesTitle = card.title.toLowerCase().includes(keyword);
+      const matchesDescription =
+        card.description?.toLowerCase().includes(keyword) || false;
+
+      if (!matchesTitle && !matchesDescription) {
+        includeCard = false;
+      }
+    }
+
+    // Member filters
+    if (includeCard && activeFilters.value.noMembers) {
+      if (card.assignedMembers && card.assignedMembers.length > 0) {
+        includeCard = false;
+      }
+    }
+
+    if (includeCard && activeFilters.value.assignedToMe) {
+      if (!card.assignedMembers?.includes(currentUserId.value)) {
+        includeCard = false;
+      }
+    }
+
+    if (includeCard && activeFilters.value.members.length > 0) {
+      const hasSelectedMember = card.assignedMembers?.some((memberId) =>
+        activeFilters.value.members.includes(memberId)
+      );
+      if (!hasSelectedMember) {
+        includeCard = false;
+      }
+    }
+
+    // Card Status filter
+    if (includeCard && activeFilters.value.cardStatus !== "") {
+      if (activeFilters.value.cardStatus === "completed" && !card.isComplete) {
+        includeCard = false;
+      }
+      if (activeFilters.value.cardStatus === "incomplete" && card.isComplete) {
+        includeCard = false;
+      }
+    }
+
+    // Activity filter
+    if (includeCard && activeFilters.value.activity !== "") {
+      switch (activeFilters.value.activity) {
+        case "lastWeek":
+          if (!isCardActiveInPeriod(card.id, 7)) {
+            includeCard = false;
+          }
+          break;
+        case "twoWeeks":
+          if (!isCardActiveInPeriod(card.id, 14)) {
+            includeCard = false;
+          }
+          break;
+        case "fourWeeks":
+          if (!isCardActiveInPeriod(card.id, 28)) {
+            includeCard = false;
+          }
+          break;
+        case "noActivity":
+          if (isCardActiveInPeriod(card.id, 28)) {
+            includeCard = false;
+          }
+          break;
+      }
+    }
+
+    return includeCard;
+  });
+};
+
+// Get cards for a specific list with filtering applied
+const getListCards = (listId: number) => {
+  const allCards = dataStore.getCardsForList(listId);
+  return filterCards(allCards);
+};
+
+// All the state that was previously spread across components
 const listRefs = ref<Record<string, HTMLElement | null>>({});
 const titleInputRefs = ref<Record<string, HTMLInputElement | null>>({});
 const cardInputRefs = ref<Record<string, HTMLTextAreaElement | null>>({});
@@ -597,7 +341,6 @@ const listInput = ref<HTMLTextAreaElement>();
 const addingCardToList = ref<number | null>(null);
 const newCardTitle = ref("");
 
-// Modal state - use board store
 const isModalOpen = computed(() => boardStore.isModalOpen);
 const selectedCard = computed(() => boardStore.selectedCard);
 const selectedCardTitle = ref("");
@@ -606,7 +349,110 @@ const cardTitleInput = ref<HTMLInputElement>();
 const newComment = ref("");
 const selectedCardListId = ref<string | null>(null);
 
-// Get card activities
+const showCloseBoardPopover = ref(false);
+
+const handleCloseBoard = () => {
+  console.log("Close board handler called!"); // Debug log
+
+  // Close the board using the store
+  if (boardStore.closeBoard && boardId.value) {
+    boardStore.closeBoard(boardId.value);
+  }
+
+  // Navigate to boards page
+  const authStore = useAuthStore();
+  if (authStore.user?.email) {
+    navigateTo(`/user/${authStore.user.email}/boards`);
+  } else {
+    // Fallback navigation
+    navigateTo("/boards");
+  }
+};
+
+const handleConfirmCloseBoard = () => {
+  if (boardStore.closeBoard) {
+    boardStore.closeBoard(boardId.value!);
+  }
+  showCloseBoardPopover.value = false;
+  // Redirect to boards page
+  navigateTo("/boards");
+};
+
+const handleGoToBoards = () => {
+  console.log("Go to boards handler called!");
+
+  // Navigate to boards page without closing the board
+  const authStore = useAuthStore();
+  if (authStore.user?.email) {
+    navigateTo(`/user/${authStore.user.email}/boards`);
+  } else {
+    // Fallback navigation
+    navigateTo("/boards");
+  }
+};
+
+// Archive modal state
+const showArchivePopover = ref(false);
+
+// Handler to show archive
+const handleShowArchive = () => {
+  showArchivePopover.value = true;
+};
+
+const archivedCards = computed(() => {
+  if (!boardId.value || !dataStore.isLoaded) return [];
+
+  const cards = boardStore.getArchivedCards(boardId.value);
+  console.log("Archived cards:", cards); // Debug log
+  return cards;
+});
+
+const archivedLists = computed(() => {
+  if (!boardId.value || !dataStore.isLoaded) return [];
+
+  const lists = boardStore.getArchivedLists(boardId.value);
+  console.log("Archived lists:", lists); // Debug log
+  return lists;
+});
+
+const handleRestoreList = (listId: number) => {
+  if (boardStore.restoreList) {
+    boardStore.restoreList(listId, false); // Don't auto-restore cards
+    console.log(`List ${listId} restored!`);
+  }
+};
+
+const handleDeleteList = (listId: number) => {
+  console.log("Delete list clicked:", listId);
+
+  const list = dataStore.getById("lists", listId);
+  console.log("Found list:", list);
+
+  // First, permanently delete all archived cards in this list
+  const archivedCardsInList = archivedCards.value.filter(
+    (card) => card.listId === listId
+  );
+  console.log("Archived cards in list:", archivedCardsInList.length);
+
+  archivedCardsInList.forEach((card) => {
+    const cardIndex = dataStore.cards.findIndex((c) => c.id === card.id);
+    if (cardIndex !== -1) {
+      dataStore.cards.splice(cardIndex, 1);
+    }
+  });
+
+  // Then permanently remove the list
+  if (dataStore.lists) {
+    const listIndex = dataStore.lists.findIndex((l) => l.id === listId);
+    console.log("List index:", listIndex);
+
+    if (listIndex !== -1) {
+      dataStore.lists.splice(listIndex, 1);
+      console.log(`List "${list?.name}" permanently deleted!`);
+    }
+  }
+};
+
 const cardActivities = computed(() => {
   if (!selectedCard.value) return [];
   const cardId =
@@ -619,6 +465,72 @@ const cardActivities = computed(() => {
 const draggedCard = ref<{ card: any; sourceListId: number } | null>(null);
 const draggedList = ref<List | null>(null);
 
+const currentListIdAsNumber = computed(() => {
+  return selectedCardListId.value
+    ? parseInt(selectedCardListId.value)
+    : undefined;
+});
+
+// Board header event handlers
+const handleUpdateBoardName = (name: string) => {
+  if (boardStore.updateBoard) {
+    boardStore.updateBoard(boardId.value!, { name });
+  }
+};
+
+const handleUpdateBoardVisibility = (isPublic: boolean) => {
+  if (boardStore.updateBoard) {
+    boardStore.updateBoard(boardId.value!, { isPublic });
+  }
+};
+
+const handleInviteMembers = () => {
+  console.log("Invite members");
+};
+
+const handleToggleFilter = () => {
+  console.log("Filter toggled");
+};
+
+const handleFilterChange = (filters: any) => {
+  activeFilters.value = { ...filters };
+};
+
+const handleExportBoard = () => {
+  console.log("Export board");
+};
+
+const handleDeleteBoard = () => {
+  console.log("Delete board");
+};
+
+const handleRestoreCard = (cardId: number) => {
+  if (boardStore.restoreCard) {
+    boardStore.restoreCard(cardId);
+  }
+};
+const handleDeleteCard = (cardId: number) => {
+  console.log("Delete card clicked:", cardId);
+  console.log("dataStore.data.value:", dataStore.data.value);
+  console.log("dataStore.cards:", dataStore.cards);
+
+  const card = dataStore.getById("cards", cardId);
+  console.log("Found card:", card);
+
+  // Try accessing the cards array directly
+  if (dataStore.cards) {
+    console.log("Cards array length before:", dataStore.cards.length);
+    const cardIndex = dataStore.cards.findIndex((c) => c.id === cardId);
+    console.log("Card index:", cardIndex);
+
+    if (cardIndex !== -1) {
+      // Try to remove from the array
+      dataStore.cards.splice(cardIndex, 1);
+      console.log("Cards array length after:", dataStore.cards.length);
+    }
+  }
+};
+
 // Helper functions
 const setListRef = (el: HTMLElement | null, listId: string) => {
   listRefs.value[listId] = el;
@@ -630,31 +542,6 @@ const setTitleInputRef = (el: HTMLInputElement | null, listId: string) => {
 
 const setCardInputRef = (el: HTMLTextAreaElement | null, listId: string) => {
   cardInputRefs.value[listId] = el;
-};
-
-const getUserName = (userId: number) => {
-  const user = dataStore.users.value.find((u) => u.id === userId);
-  return user ? `${user.firstName} ${user.lastName}` : "Unknown User";
-};
-
-const getUserInitials = (userId: number) => {
-  const user = dataStore.users.value.find((u) => u.id === userId);
-  return user ? `${user.firstName[0]}${user.lastName[0]}` : "U";
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-
-  if (hours < 1) return "just now";
-  if (hours === 1) return "1 hour ago";
-  if (hours < 24) return `${hours} hours ago`;
-
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "1 day ago";
-  return `${days} days ago`;
 };
 
 // Enhanced drag detection functions
@@ -861,22 +748,6 @@ const closeModal = () => {
   newComment.value = "";
   selectedCardListId.value = null;
   document.body.style.overflow = "auto";
-};
-
-const getCurrentListTitle = () => {
-  if (boardStore.getCurrentListTitle) {
-    return boardStore.getCurrentListTitle();
-  }
-
-  // Fallback logic using selectedCardListId
-  if (selectedCardListId.value) {
-    const list = boardLists.value.find(
-      (l) => l.id.toString() === selectedCardListId.value
-    );
-    return list?.name || "Unknown List";
-  }
-
-  return "Unknown List";
 };
 
 const toggleCardComplete = () => {
@@ -1089,6 +960,47 @@ const handleListDrop = (event: DragEvent, targetListId: number) => {
 
 const handleListMouseDown = (event: MouseEvent) => {
   event.stopPropagation();
+};
+
+const handleCardMoved = (payload: {
+  cardId: number;
+  listId: number;
+  position: number;
+}) => {
+  console.log("Card moved:", payload);
+};
+
+const handleMemberAdded = (payload: any) => {
+  console.log("Member added:", payload);
+};
+
+const handleMemberRemoved = (payload: any) => {
+  console.log("Member removed:", payload);
+};
+
+const handleArchiveCard = (cardId: number) => {
+  if (boardStore.archiveCard) {
+    boardStore.archiveCard(cardId);
+    console.log(`Card ${cardId} archived!`);
+  }
+};
+
+const handleArchiveList = (listId: number) => {
+  if (boardStore.archiveList) {
+    boardStore.archiveList(listId, false); // Don't auto-archive cards
+    console.log(`List ${listId} archived!`);
+  }
+};
+
+const handleArchiveAllCards = (listId: number) => {
+  // Archive all cards in the list
+  const cardsInList = dataStore.getCardsForList(listId);
+  cardsInList.forEach((card) => {
+    if (boardStore.archiveCard) {
+      boardStore.archiveCard(card.id);
+    }
+  });
+  console.log(`All cards in list ${listId} archived!`);
 };
 
 // SEO and title

@@ -109,7 +109,6 @@ import type { Board } from "~~/shared/types/globals";
 // Use the home layout and require authentication
 definePageMeta({
   layout: "home",
-  middleware: "auth",
 });
 
 // Get stores

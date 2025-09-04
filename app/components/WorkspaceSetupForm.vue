@@ -21,8 +21,9 @@
               v-model="workspace.name"
               placeholder="Taco's Co."
               size="lg"
+              variant="outline"
+              color="primary"
               class="w-full"
-              :ui="{ base: 'border-2 border-blue-500 focus:border-blue-600' }"
             />
             <p class="text-sm text-gray-600 mt-1">
               This is the name of your company, team or organization.
@@ -39,6 +40,8 @@
               :items="workspaceTypes"
               placeholder="Choose..."
               size="lg"
+              variant="outline"
+              color="primary"
               class="w-full"
             />
           </div>
@@ -53,6 +56,8 @@
               v-model="workspace.description"
               placeholder="Our team organizes everything here."
               :rows="4"
+              variant="outline"
+              color="primary"
               class="w-full"
               resize
             />
@@ -152,7 +157,7 @@ const emit = defineEmits(["submit"]);
 
 const workspace = reactive({
   name: "Taco's Co.",
-  type: "",
+  type: null, // Changed from "" to null to ensure placeholder shows
   description: "Our team organizes everything here.",
 });
 
@@ -166,7 +171,11 @@ const workspaceTypes = [
 ];
 
 const isFormValid = computed(() => {
-  return workspace.name.trim() !== "" && workspace.type.trim() !== "";
+  return (
+    workspace.name.trim() !== "" &&
+    workspace.type !== null &&
+    workspace.type !== ""
+  );
 });
 
 const handleSubmit = () => {

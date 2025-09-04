@@ -197,7 +197,10 @@ export const useDataStore = defineStore("data", () => {
 
   const getWorkspaceMembers = (workspaceId: number) => {
     return workspaceMembers.value
-      .filter((member) => member.workspaceId === workspaceId)
+      .filter(
+        (member) =>
+          member.workspaceId === workspaceId && member.status === "active" // 👈 Add this line
+      )
       .map((member) => ({
         ...member,
         user: getById("users", member.userId),
