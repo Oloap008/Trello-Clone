@@ -1,3 +1,5 @@
+import type { TableName, TableRecord } from "~~/shared/types/globals";
+
 export const useDataStore = defineStore("data", () => {
   // Using store-compatible localStorage composable
   const { value: data, isLoaded } = useLocalStorage(
@@ -303,6 +305,19 @@ export const useDataStore = defineStore("data", () => {
     }
   };
 
+  const hardDelete = <T extends TableName>(
+    tableName: T,
+    id: number
+  ): boolean => {
+    const index = findItemIndex(tableName, id);
+    if (index === -1) {
+      return false;
+    }
+
+    (data.value[tableName] as any[]).splice(index, 1);
+    return true;
+  };
+
   return {
     // Raw data (reactive)
     data,
@@ -326,6 +341,7 @@ export const useDataStore = defineStore("data", () => {
     getById,
     update,
     remove,
+    hardDelete,
 
     // Board-specific helpers
     getBoardsForUser,

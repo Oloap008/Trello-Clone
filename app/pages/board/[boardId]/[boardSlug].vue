@@ -21,8 +21,6 @@
     <div
       v-if="isAppReady && currentBoard"
       class="p-6 bg-gray-100 min-h-screen flex flex-col"
-      @click="handleBackgroundClick"
-      @dragover="handleGlobalDragOver"
       :style="{
         backgroundColor: currentBoard.color || '#f3f4f6',
         backgroundImage: currentBoard.backgroundImage
@@ -31,9 +29,11 @@
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }"
+      @click="handleBackgroundClick"
+      @dragover="handleGlobalDragOver"
     >
       <!-- Board Container -->
-      <div class="flex flex-1 gap-4 overflow-x-auto pb-4" id="lists-container">
+      <div id="lists-container" class="flex flex-1 gap-4 overflow-x-auto pb-4">
         <!-- Lists -->
         <BoardList
           v-for="list in boardLists"
@@ -165,7 +165,16 @@ watchEffect(() => {
 });
 
 // Get current board and its data
-const currentBoard = computed(() => boardStore.currentBoard);
+const currentBoard = computed(() => {
+  if (!boardId.value || !dataStore.isLoaded) return null;
+
+  // Get the board regardless of status when we're on the board page
+  // This prevents the component from breaking during the close transition
+  const board = dataStore.getById("boards", boardId.value);
+
+  // Only return null if the board truly doesn't exist
+  return board || null;
+});
 const boardLists = computed(() =>
   dataStore.getListsForBoard(boardId.value || 0)
 );
@@ -351,21 +360,61 @@ const selectedCardListId = ref<string | null>(null);
 
 const showCloseBoardPopover = ref(false);
 
-const handleCloseBoard = () => {
-  console.log("Close board handler called!"); // Debug log
+const handleCloseBoard = async () => {
+  try {
+    console.log("Close board handler called for board:", boardId.value);
 
-  // Close the board using the store
-  if (boardStore.closeBoard && boardId.value) {
-    boardStore.closeBoard(boardId.value);
-  }
+    if (!boardId.value) {
+      console.error("No board ID available");
+      return;
+    }
 
-  // Navigate to boards page
-  const authStore = useAuthStore();
-  if (authStore.user?.email) {
-    navigateTo(`/user/${authStore.user.email}/boards`);
-  } else {
-    // Fallback navigation
-    navigateTo("/boards");
+    // Store the navigation URL before updating the board
+    // (because after update, authStore might be affected by the re-render)
+    const navigationUrl = authStore.user?.email
+      ? `/user/${encodeURIComponent(authStore.user.email)}/boards`
+      : "/boards";
+
+    console.log("Will navigate to:", navigationUrl);
+
+    // Update the board status to not_active
+    const closedBoard = dataStore.update("boards", boardId.value, {
+      status: "not_active",
+    });
+
+    console.log("Board after closing:", closedBoard);
+
+    // Show success message
+    const toast = useToast();
+    toast.add({
+      title: "Board closed successfully",
+      color: "success",
+      icon: "i-heroicons-check-circle",
+    });
+
+    // Use setTimeout to ensure the toast shows and DOM updates complete
+    setTimeout(async () => {
+      console.log("Attempting navigation to:", navigationUrl);
+
+      try {
+        // Force navigation with replace to avoid back button issues
+        await navigateTo(navigationUrl, { replace: true });
+      } catch (navError) {
+        console.error("navigateTo failed, using window.location:", navError);
+        // Fallback to window.location for guaranteed navigation
+        window.location.href = navigationUrl;
+      }
+    }, 100);
+  } catch (error) {
+    console.error("Error closing board:", error);
+
+    const toast = useToast();
+    toast.add({
+      title: "Failed to close board",
+      description: "Please try again",
+      color: "error",
+      icon: "i-heroicons-exclamation-circle",
+    });
   }
 };
 
