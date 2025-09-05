@@ -2,6 +2,7 @@
   <div class="relative">
     <!-- Create New Board Card Trigger -->
     <div
+      ref="triggerRef"
       class="h-28 bg-gray-100 rounded-lg cursor-pointer transition-colors hover:bg-gray-200 group flex items-center justify-center"
       @click="togglePopover"
     >
@@ -10,243 +11,261 @@
       >
     </div>
 
-    <!-- Popover Content -->
-    <div
-      v-if="isOpen"
-      class="absolute z-50 top-full left-0 mt-2 w-80 p-6 bg-white rounded-lg shadow-xl border border-gray-200"
-    >
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-medium text-gray-900">Create board</h3>
-        <button @click="closePopover" class="p-1 hover:bg-gray-100 rounded">
-          <UIcon name="i-heroicons-x-mark" class="w-5 h-5" />
-        </button>
-      </div>
-
-      <form @submit.prevent="handleCreateBoard">
-        <!-- Board Preview with actual background -->
-        <div class="mb-6">
-          <div class="relative h-24 rounded-lg overflow-hidden">
-            <!-- Background image or color -->
-            <div
-              class="absolute inset-0"
-              :style="{
-                backgroundColor: selectedBackground
-                  ? 'transparent'
-                  : selectedColor,
-                backgroundImage: selectedBackground
-                  ? `url(${selectedBackground})`
-                  : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }"
-            ></div>
-
-            <!-- Kanban columns mockup overlay -->
-            <div class="relative h-full flex space-x-2 p-3">
-              <!-- Column 1 -->
-              <div class="flex-1 bg-white bg-opacity-90 rounded-sm p-1">
-                <div class="h-1.5 bg-gray-300 rounded mb-1"></div>
-                <div class="h-1 bg-gray-200 rounded mb-1"></div>
-                <div class="h-1 bg-gray-200 rounded"></div>
-              </div>
-
-              <!-- Column 2 -->
-              <div class="flex-1 bg-white bg-opacity-90 rounded-sm p-1">
-                <div class="h-1.5 bg-gray-300 rounded mb-1"></div>
-                <div class="h-1 bg-gray-200 rounded mb-1"></div>
-                <div class="h-1 bg-gray-200 rounded mb-1"></div>
-                <div class="h-1 bg-gray-200 rounded"></div>
-              </div>
-
-              <!-- Column 3 -->
-              <div class="flex-1 bg-white bg-opacity-90 rounded-sm p-1">
-                <div class="h-1.5 bg-gray-300 rounded mb-1"></div>
-                <div class="h-1 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Background Section -->
-        <div class="mb-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-3">Background</h4>
-          <div class="space-y-2">
-            <!-- Background Images Row -->
-            <div class="grid grid-cols-4 gap-2">
-              <button
-                v-for="bg in backgroundImages"
-                :key="bg.id"
-                type="button"
-                class="h-12 rounded bg-cover bg-center border-2 transition-all hover:opacity-80"
-                :class="
-                  selectedBackground === bg.url
-                    ? 'border-blue-500'
-                    : 'border-gray-200'
-                "
-                :style="{ backgroundImage: `url(${bg.url})` }"
-                @click="selectBackground(bg.url)"
-              />
-            </div>
-
-            <!-- Color Options Row -->
-            <div class="grid grid-cols-4 gap-2">
-              <button
-                v-for="color in backgroundColors"
-                :key="color"
-                type="button"
-                class="h-12 rounded border-2 transition-all hover:opacity-80 relative flex items-center justify-center"
-                :class="
-                  selectedColor === color && !selectedBackground
-                    ? 'border-gray-400'
-                    : 'border-gray-200'
-                "
-                :style="{ backgroundColor: color }"
-                @click="selectColor(color)"
-              >
-                <!-- Checkmark for selected color -->
-                <UIcon
-                  v-if="selectedColor === color && !selectedBackground"
-                  name="i-heroicons-check"
-                  class="w-5 h-5 text-white"
-                />
-              </button>
-
-              <!-- More options button -->
-              <button
-                type="button"
-                class="h-12 rounded border-2 border-gray-200 bg-gray-100 hover:bg-gray-200 transition-all flex items-center justify-center"
-              >
-                <UIcon
-                  name="i-heroicons-ellipsis-horizontal"
-                  class="w-5 h-5 text-gray-500"
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Board Title -->
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-gray-700 mb-2">
-            Board title <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="boardTitle"
-            type="text"
-            placeholder=""
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            :class="{ 'border-red-300': showError && !boardTitle }"
-          />
-          <div v-if="showError && !boardTitle" class="flex items-center mt-2">
-            <UIcon
-              name="i-heroicons-exclamation-triangle"
-              class="w-4 h-4 text-yellow-500 mr-1 flex-shrink-0"
-            />
-            <span class="text-sm text-gray-600">Board title is required</span>
-          </div>
-        </div>
-
-        <!-- Workspace Selection -->
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-gray-700 mb-2">
-            Workspace
-          </label>
-          <select
-            v-model="selectedWorkspace"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none"
-          >
-            <option
-              v-for="option in workspaceOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Visibility -->
-        <div class="mb-6">
-          <label class="block text-sm font-semibold text-gray-700 mb-2">
-            Visibility
-          </label>
-          <div class="relative">
-            <button
-              type="button"
-              @click="showVisibilityOptions = !showVisibilityOptions"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-left flex items-center justify-between"
-            >
-              <div class="flex items-center">
-                <UIcon
-                  :name="selectedVisibilityOption?.icon"
-                  class="w-4 h-4 mr-2 text-gray-500"
-                />
-                <span>{{ selectedVisibilityOption?.label }}</span>
-              </div>
-              <UIcon
-                name="i-heroicons-chevron-down"
-                class="w-4 h-4 text-gray-500"
-              />
+    <!-- Popover Content - Using Portal but positioned relative to trigger -->
+    <Teleport to="body">
+      <div
+        v-if="isOpen"
+        ref="popoverRef"
+        class="absolute z-50 w-80 bg-white rounded-lg shadow-xl border border-gray-200"
+        :style="popoverStyle"
+      >
+        <div class="p-6 max-h-full overflow-y-auto">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-medium text-gray-900">Create board</h3>
+            <button @click="closePopover" class="p-1 hover:bg-gray-100 rounded">
+              <UIcon name="i-heroicons-x-mark" class="w-5 h-5" />
             </button>
+          </div>
 
-            <!-- Visibility Options Dropdown -->
-            <div
-              v-if="showVisibilityOptions"
-              class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg"
-            >
-              <div
-                v-for="option in visibilityOptions"
-                :key="option.value"
-                @click="selectVisibility(option.value)"
-                class="flex items-start p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-              >
-                <UIcon
-                  :name="option.icon"
-                  class="w-5 h-5 mr-3 mt-0.5 text-gray-500 flex-shrink-0"
-                />
-                <div class="flex-1">
-                  <div class="font-medium text-gray-900 text-sm">
-                    {{ option.label }}
+          <form @submit.prevent="handleCreateBoard">
+            <!-- Board Preview with actual background -->
+            <div class="mb-6">
+              <div class="relative h-24 rounded-lg overflow-hidden">
+                <!-- Background image or color -->
+                <div
+                  class="absolute inset-0"
+                  :style="{
+                    backgroundColor: selectedBackground
+                      ? 'transparent'
+                      : selectedColor,
+                    backgroundImage: selectedBackground
+                      ? `url(${selectedBackground})`
+                      : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }"
+                ></div>
+
+                <!-- Kanban columns mockup overlay -->
+                <div class="relative h-full flex space-x-2 p-3">
+                  <!-- Column 1 -->
+                  <div class="flex-1 bg-white bg-opacity-90 rounded-sm p-1">
+                    <div class="h-1.5 bg-gray-300 rounded mb-1"></div>
+                    <div class="h-1 bg-gray-200 rounded mb-1"></div>
+                    <div class="h-1 bg-gray-200 rounded"></div>
                   </div>
-                  <div class="text-xs text-gray-600 mt-1">
-                    {{ option.description }}
+
+                  <!-- Column 2 -->
+                  <div class="flex-1 bg-white bg-opacity-90 rounded-sm p-1">
+                    <div class="h-1.5 bg-gray-300 rounded mb-1"></div>
+                    <div class="h-1 bg-gray-200 rounded mb-1"></div>
+                    <div class="h-1 bg-gray-200 rounded mb-1"></div>
+                    <div class="h-1 bg-gray-200 rounded"></div>
+                  </div>
+
+                  <!-- Column 3 -->
+                  <div class="flex-1 bg-white bg-opacity-90 rounded-sm p-1">
+                    <div class="h-1.5 bg-gray-300 rounded mb-1"></div>
+                    <div class="h-1 bg-gray-200 rounded"></div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Backdrop for visibility dropdown -->
-          <div
-            v-if="showVisibilityOptions"
-            class="fixed inset-0 z-40"
-            @click="showVisibilityOptions = false"
-          ></div>
+            <!-- Background Section -->
+            <div class="mb-6">
+              <h4 class="text-sm font-semibold text-gray-700 mb-3">
+                Background
+              </h4>
+              <div class="space-y-2">
+                <!-- Background Images Row -->
+                <div class="grid grid-cols-4 gap-2">
+                  <button
+                    v-for="bg in backgroundImages"
+                    :key="bg.id"
+                    type="button"
+                    class="h-12 rounded bg-cover bg-center border-2 transition-all hover:opacity-80"
+                    :class="
+                      selectedBackground === bg.url
+                        ? 'border-blue-500'
+                        : 'border-gray-200'
+                    "
+                    :style="{ backgroundImage: `url(${bg.url})` }"
+                    @click="selectBackground(bg.url)"
+                  />
+                </div>
+
+                <!-- Color Options Row -->
+                <div class="grid grid-cols-4 gap-2">
+                  <button
+                    v-for="color in backgroundColors"
+                    :key="color"
+                    type="button"
+                    class="h-12 rounded border-2 transition-all hover:opacity-80 relative flex items-center justify-center"
+                    :class="
+                      selectedColor === color && !selectedBackground
+                        ? 'border-gray-400'
+                        : 'border-gray-200'
+                    "
+                    :style="{ backgroundColor: color }"
+                    @click="selectColor(color)"
+                  >
+                    <!-- Checkmark for selected color -->
+                    <UIcon
+                      v-if="selectedColor === color && !selectedBackground"
+                      name="i-heroicons-check"
+                      class="w-5 h-5 text-white"
+                    />
+                  </button>
+
+                  <!-- More options button -->
+                  <button
+                    type="button"
+                    class="h-12 rounded border-2 border-gray-200 bg-gray-100 hover:bg-gray-200 transition-all flex items-center justify-center"
+                  >
+                    <UIcon
+                      name="i-heroicons-ellipsis-horizontal"
+                      class="w-5 h-5 text-gray-500"
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Board Title -->
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Board title <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="boardTitle"
+                type="text"
+                placeholder=""
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                :class="{ 'border-red-300': showError && !boardTitle }"
+              />
+              <div
+                v-if="showError && !boardTitle"
+                class="flex items-center mt-2"
+              >
+                <UIcon
+                  name="i-heroicons-exclamation-triangle"
+                  class="w-4 h-4 text-yellow-500 mr-1 flex-shrink-0"
+                />
+                <span class="text-sm text-gray-600"
+                  >Board title is required</span
+                >
+              </div>
+            </div>
+
+            <!-- Workspace Selection -->
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Workspace
+              </label>
+              <select
+                v-model="selectedWorkspace"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none"
+              >
+                <option
+                  v-for="option in workspaceOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Visibility -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Visibility
+              </label>
+              <div class="relative">
+                <button
+                  type="button"
+                  @click="showVisibilityOptions = !showVisibilityOptions"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-left flex items-center justify-between"
+                >
+                  <div class="flex items-center">
+                    <UIcon
+                      :name="selectedVisibilityOption?.icon"
+                      class="w-4 h-4 mr-2 text-gray-500"
+                    />
+                    <span>{{ selectedVisibilityOption?.label }}</span>
+                  </div>
+                  <UIcon
+                    name="i-heroicons-chevron-down"
+                    class="w-4 h-4 text-gray-500"
+                  />
+                </button>
+
+                <!-- Visibility Options Dropdown -->
+                <div
+                  v-if="showVisibilityOptions"
+                  class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                >
+                  <div
+                    v-for="option in visibilityOptions"
+                    :key="option.value"
+                    @click="selectVisibility(option.value)"
+                    class="flex items-start p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <UIcon
+                      :name="option.icon"
+                      class="w-5 h-5 mr-3 mt-0.5 text-gray-500 flex-shrink-0"
+                    />
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-900 text-sm">
+                        {{ option.label }}
+                      </div>
+                      <div class="text-xs text-gray-600 mt-1">
+                        {{ option.description }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Backdrop for visibility dropdown -->
+              <div
+                v-if="showVisibilityOptions"
+                class="fixed inset-0 z-40"
+                @click="showVisibilityOptions = false"
+              ></div>
+            </div>
+
+            <!-- Actions -->
+            <div class="space-y-3">
+              <button
+                type="submit"
+                class="w-full px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                :disabled="!boardTitle"
+              >
+                Create
+              </button>
+
+              <button
+                type="button"
+                class="w-full px-4 py-3 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              >
+                Start with a template
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
+    </Teleport>
 
-        <!-- Actions -->
-        <div class="space-y-3">
-          <button
-            type="submit"
-            class="w-full px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            :disabled="!boardTitle"
-          >
-            Create
-          </button>
-
-          <button
-            type="button"
-            class="w-full px-4 py-3 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
-          >
-            Start with a template
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Backdrop -->
-    <div v-if="isOpen" class="fixed inset-0 z-40" @click="closePopover"></div>
+    <!-- Invisible backdrop that only appears when clicking outside, no visual overlay -->
+    <div
+      v-if="isOpen"
+      class="fixed inset-0 z-40"
+      @click="closePopover"
+      style="background: transparent"
+    ></div>
   </div>
 </template>
 
@@ -257,19 +276,31 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// Refs
+const triggerRef = ref<HTMLElement>();
+const popoverRef = ref<HTMLElement>();
+
 // Popover state
 const isOpen = ref(false);
 const showVisibilityOptions = ref(false);
 
 // Form data
 const boardTitle = ref("");
-const selectedColor = ref("#8B5CF6"); // Purple color to match screenshot
+const selectedColor = ref("#8B5CF6");
 const selectedBackground = ref("");
 const selectedWorkspace = ref(props.workspaceId || 1);
 const visibility = ref("workspace");
 const showError = ref(false);
 
-// Background options - matching the screenshot
+// Position calculation
+const popoverStyle = ref({});
+
+// Constants for popover dimensions
+const POPOVER_WIDTH = 320; // w-80 = 320px
+const VIEWPORT_PADDING = 16; // Minimum distance from viewport edges
+const TRIGGER_GAP = 8; // Gap between trigger and popover
+
+// Background options
 const backgroundImages = [
   {
     id: 1,
@@ -306,7 +337,6 @@ const currentUser = computed(() => authStore.user);
 // Get user's workspaces for the dropdown
 const userWorkspaces = computed(() => {
   if (!currentUser.value) return [];
-
   const userId = parseInt(currentUser.value.id);
   return dataStore.getWorkspacesForUser(userId);
 });
@@ -362,13 +392,112 @@ const selectedVisibilityOption = computed(() => {
   );
 });
 
+// Smart positioning calculation that keeps popover in viewport
+const calculatePosition = async () => {
+  if (!triggerRef.value || !popoverRef.value) return;
+
+  // Wait for DOM to be fully rendered
+  await nextTick();
+
+  const triggerRect = triggerRef.value.getBoundingClientRect();
+  const viewport = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+
+  // Get the actual height of the popover content
+  const popoverHeight = popoverRef.value.scrollHeight;
+
+  // Available space in each direction
+  const spaceBelow = viewport.height - triggerRect.bottom - VIEWPORT_PADDING;
+  const spaceAbove = triggerRect.top - VIEWPORT_PADDING;
+  const spaceRight = viewport.width - triggerRect.right - VIEWPORT_PADDING;
+  const spaceLeft = triggerRect.left - VIEWPORT_PADDING;
+
+  let finalPosition = {
+    left: triggerRect.left,
+    top: triggerRect.bottom + TRIGGER_GAP,
+    maxHeight: "none" as string | number,
+    width: `${POPOVER_WIDTH}px`,
+  };
+
+  // Priority 1: Try below
+  if (spaceBelow >= popoverHeight + TRIGGER_GAP) {
+    finalPosition.top = triggerRect.bottom + TRIGGER_GAP;
+  }
+  // Priority 2: Try above
+  else if (spaceAbove >= popoverHeight + TRIGGER_GAP) {
+    finalPosition.top = triggerRect.top - popoverHeight - TRIGGER_GAP;
+  }
+  // Priority 3: Try to the right
+  else if (spaceRight >= POPOVER_WIDTH + TRIGGER_GAP) {
+    finalPosition.left = triggerRect.right + TRIGGER_GAP;
+    finalPosition.top = Math.min(
+      triggerRect.top,
+      viewport.height - popoverHeight - VIEWPORT_PADDING
+    );
+    // Constrain height if needed
+    if (popoverHeight > viewport.height - 2 * VIEWPORT_PADDING) {
+      finalPosition.maxHeight = viewport.height - 2 * VIEWPORT_PADDING;
+      finalPosition.top = VIEWPORT_PADDING;
+    }
+  }
+  // Priority 4: Try to the left
+  else if (spaceLeft >= POPOVER_WIDTH + TRIGGER_GAP) {
+    finalPosition.left = triggerRect.left - POPOVER_WIDTH - TRIGGER_GAP;
+    finalPosition.top = Math.min(
+      triggerRect.top,
+      viewport.height - popoverHeight - VIEWPORT_PADDING
+    );
+    // Constrain height if needed
+    if (popoverHeight > viewport.height - 2 * VIEWPORT_PADDING) {
+      finalPosition.maxHeight = viewport.height - 2 * VIEWPORT_PADDING;
+      finalPosition.top = VIEWPORT_PADDING;
+    }
+  }
+  // Fallback: Position below with height constraint
+  else {
+    finalPosition.top = triggerRect.bottom + TRIGGER_GAP;
+    finalPosition.maxHeight = Math.max(300, spaceBelow - TRIGGER_GAP);
+  }
+
+  // Horizontal boundary checks for top/bottom positioning
+  if (finalPosition.left + POPOVER_WIDTH > viewport.width - VIEWPORT_PADDING) {
+    finalPosition.left = viewport.width - POPOVER_WIDTH - VIEWPORT_PADDING;
+  }
+  if (finalPosition.left < VIEWPORT_PADDING) {
+    finalPosition.left = VIEWPORT_PADDING;
+  }
+
+  // Vertical boundary checks
+  if (finalPosition.top < VIEWPORT_PADDING) {
+    finalPosition.top = VIEWPORT_PADDING;
+  }
+
+  // Apply the calculated position
+  popoverStyle.value = {
+    left: `${finalPosition.left}px`,
+    top: `${finalPosition.top}px`,
+    width: finalPosition.width,
+    ...(finalPosition.maxHeight !== "none" && {
+      maxHeight: `${finalPosition.maxHeight}px`,
+    }),
+  };
+};
+
 // Methods
-const togglePopover = () => {
+const togglePopover = async () => {
   isOpen.value = !isOpen.value;
+  if (isOpen.value) {
+    // Wait for the DOM to update, then calculate position
+    await nextTick();
+    await calculatePosition();
+  }
 };
 
 const closePopover = () => {
   isOpen.value = false;
+  showVisibilityOptions.value = false;
 };
 
 const selectBackground = (url: string) => {
@@ -403,8 +532,8 @@ const handleCreateBoard = () => {
     color: selectedBackground.value ? undefined : selectedColor.value,
     backgroundImage: selectedBackground.value || undefined,
     workspaceId: selectedWorkspace.value,
-    ownerId: parseInt(currentUser.value.id), // Convert string ID to number
-    visibility: visibility.value, // Use the three-option visibility
+    ownerId: parseInt(currentUser.value.id),
+    visibility: visibility.value,
     status: "active",
   });
 
@@ -429,7 +558,7 @@ const handleCreateBoard = () => {
 
   closePopover();
 
-  // Optional: Navigate to the new board
+  // Navigate to the new board
   navigateTo(
     `/board/${newBoard.id}/${newBoard.name
       .toLowerCase()
@@ -437,4 +566,27 @@ const handleCreateBoard = () => {
       .replace(/(^-|-$)/g, "")}`
   );
 };
+
+// Handle window resize and scroll to recalculate position
+const handleResize = () => {
+  if (isOpen.value) {
+    calculatePosition();
+  }
+};
+
+const handleScroll = () => {
+  if (isOpen.value) {
+    calculatePosition();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("resize", handleResize);
+  window.addEventListener("scroll", handleScroll, true);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
+  window.removeEventListener("scroll", handleScroll, true);
+});
 </script>

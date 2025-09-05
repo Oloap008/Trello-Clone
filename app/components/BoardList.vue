@@ -1,6 +1,7 @@
 <template>
   <div
-    class="w-72 bg-gray-200 rounded-xl p-3 flex-shrink-0 flex flex-col h-full"
+    class="w-72 bg-gray-200 rounded-xl p-3 flex-shrink-0 flex flex-col"
+    style="height: fit-content; max-height: calc(100vh - 200px)"
     :ref="(el) => $emit('set-list-ref', el, list.id.toString())"
     @click.stop
     :data-list-id="list.id"
@@ -51,7 +52,8 @@
 
     <!-- Cards Container -->
     <div
-      class="flex-1 min-h-[20px] max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200"
+      class="flex-1 min-h-[20px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200"
+      style="max-height: calc(100vh - 280px)"
       :data-list-id="list.id"
       @drop="$emit('card-drop', $event, list.id)"
       @dragover="$emit('card-drag-over', $event)"
@@ -75,7 +77,7 @@
             draggable="true"
             @dragstart="$emit('card-drag-start', $event, card, list.id)"
             @dragend="$emit('card-drag-end', $event)"
-            class="bg-white rounded-lg p-3 shadow-sm transition-all cursor-pointer group border-2 border-white hover:border-2 hover:border-blue-400"
+            class="bg-white rounded-lg p-3 shadow-sm transition-all cursor-pointer group border-2 border-white hover:border-2 hover:border-blue-400 w-full"
             @click="$emit('open-card', card)"
           >
             <!-- Card content -->
@@ -99,7 +101,7 @@
                   />
                 </div>
                 <span
-                  class="text-sm text-gray-800 transition-transform duration-200 ease-out"
+                  class="text-sm text-gray-800 transition-transform duration-200 ease-out break-words"
                   :class="{
                     'translate-x-0': card.isComplete,
                     'group-hover:translate-x-0 -translate-x-6':
@@ -242,3 +244,22 @@ defineEmits<{
   "archive-all-cards": [listId: number];
 }>();
 </script>
+
+<style scoped>
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+</style>

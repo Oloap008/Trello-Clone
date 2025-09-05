@@ -1,12 +1,10 @@
 <template>
-  <div
-    class="bg-black/80 backdrop-blur-sm border-b border-white/10 px-4 py-3 relative"
-  >
-    <div class="flex items-center justify-between">
+  <div class="bg-black/80 backdrop-blur-sm border-b border-white/10 px-4 py-3">
+    <div class="flex items-center justify-between max-w-full">
       <!-- Left side - Board Name -->
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-3 min-w-0 flex-1">
         <!-- Editable Board Name -->
-        <div class="flex items-center">
+        <div class="flex items-center min-w-0">
           <input
             v-if="isEditingBoardName"
             v-model="editingBoardName"
@@ -14,13 +12,13 @@
             @keydown.enter="saveBoardName"
             @keydown.escape="cancelBoardNameEdit"
             ref="boardNameInput"
-            class="bg-white/90 text-gray-900 font-bold text-lg px-3 py-1 rounded border-2 border-blue-500 focus:outline-none min-w-[200px]"
+            class="bg-white/90 text-gray-900 font-bold text-lg px-3 py-1 rounded border-2 border-blue-500 focus:outline-none min-w-[200px] max-w-[400px]"
             maxlength="100"
           />
           <button
             v-else
             @click="startEditingBoardName"
-            class="text-white font-bold text-lg hover:bg-white/20 px-3 py-1 rounded transition-colors"
+            class="text-white font-bold text-lg hover:bg-white/20 px-3 py-1 rounded transition-colors truncate max-w-[400px]"
           >
             {{ board?.name || "Board Name" }}
           </button>
@@ -28,7 +26,7 @@
       </div>
 
       <!-- Right side - Controls -->
-      <div class="flex items-center space-x-2 relative">
+      <div class="flex items-center space-x-2 relative flex-shrink-0">
         <!-- Board Members Avatars -->
         <div class="flex -space-x-2" v-if="boardMembers.length > 0">
           <UAvatar
@@ -57,7 +55,7 @@
         <UButton
           variant="ghost"
           size="sm"
-          class="text-white hover:bg-white/20 border border-white/30"
+          class="text-white hover:bg-white/20 border border-white/30 flex-shrink-0"
           @click="toggleVisibilityMenu"
         >
           <UIcon
@@ -76,7 +74,7 @@
           <UButton
             variant="ghost"
             size="sm"
-            class="text-white hover:bg-white/20"
+            class="text-white hover:bg-white/20 flex-shrink-0"
             :class="{ 'bg-white/20': showFilterPopover || hasActiveFilters }"
             @click="toggleFilter"
           >

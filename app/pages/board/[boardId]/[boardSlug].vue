@@ -1,26 +1,9 @@
 <template>
-  <div>
-    <!-- Board Header -->
-    <BoardHeader
-      :board="currentBoard"
-      :board-members="boardMembers"
-      :current-user-id="currentUserId"
-      :is-filter-active="isFilterActive"
-      @show-archive="handleShowArchive"
-      @update-board-name="handleUpdateBoardName"
-      @update-board-visibility="handleUpdateBoardVisibility"
-      @invite-members="handleInviteMembers"
-      @toggle-filter="handleToggleFilter"
-      @filter-change="handleFilterChange"
-      @export-board="handleExportBoard"
-      @close-board="handleCloseBoard"
-      @go-to-boards="handleGoToBoards"
-    />
-
+  <div class="h-full">
     <!-- Board Content -->
     <div
       v-if="isAppReady && currentBoard"
-      class="p-6 bg-gray-100 min-h-screen flex flex-col"
+      class="h-full"
       :style="{
         backgroundColor: currentBoard.color || '#f3f4f6',
         backgroundImage: currentBoard.backgroundImage
@@ -33,7 +16,10 @@
       @dragover="handleGlobalDragOver"
     >
       <!-- Board Container -->
-      <div id="lists-container" class="flex flex-1 gap-4 overflow-x-auto pb-4">
+      <div
+        id="lists-container"
+        class="flex gap-4 overflow-x-auto h-full p-6 scrollbar-trello"
+      >
         <!-- Lists -->
         <BoardList
           v-for="list in boardLists"
@@ -51,6 +37,8 @@
           :placeholder-list-id="placeholderListId"
           :placeholder-index="placeholderIndex"
           :closest-list-id="closestListId"
+          class="flex-shrink-0"
+          style="width: 272px; min-width: 272px"
           @start-editing-title="startEditingListTitle"
           @update-editing-title="editingListTitle = $event"
           @save-title="saveListTitle"
@@ -84,6 +72,8 @@
         <AddListForm
           :is-adding="isAddingList"
           :new-list-title="newListTitle"
+          class="flex-shrink-0"
+          style="width: 272px; min-width: 272px"
           @start-adding="startAddingList"
           @update-title="newListTitle = $event"
           @add-list="addList"
@@ -1061,3 +1051,29 @@ useHead({
   ),
 });
 </script>
+
+<style scoped>
+/* Improve scroll behavior - enable wheel scrolling */
+.scrollbar-trello {
+  scroll-behavior: smooth;
+}
+
+/* Trello-style scrollbar */
+.scrollbar-trello::-webkit-scrollbar {
+  height: 12px;
+}
+
+.scrollbar-trello::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.scrollbar-trello::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+}
+
+.scrollbar-trello::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+</style>
