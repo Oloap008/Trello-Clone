@@ -8,6 +8,7 @@ export const useBoardStore = defineStore("board", () => {
   const selectedCardListId = ref<number | null>(null);
   const isModalOpen = ref(false);
   const isEditingCardTitle = ref(false);
+  const showArchiveModal = ref(false);
 
   // Computed properties
   const currentBoard = computed(() => {
@@ -421,6 +422,21 @@ export const useBoardStore = defineStore("board", () => {
     });
   };
 
+  // Add archive actions
+  const openArchiveModal = () => {
+    console.log("🏪 BoardStore: Opening archive modal");
+    showArchiveModal.value = true;
+    console.log(
+      "🏪 BoardStore: showArchiveModal is now:",
+      showArchiveModal.value
+    );
+  };
+
+  const closeArchiveModal = () => {
+    console.log("🏪 BoardStore: Closing archive modal");
+    showArchiveModal.value = false;
+  };
+
   return {
     // State
     currentBoardId: readonly(currentBoardId),
@@ -469,5 +485,8 @@ export const useBoardStore = defineStore("board", () => {
     restoreList,
     getArchivedCards,
     getArchivedLists,
+    showArchiveModal: readonly(showArchiveModal),
+    openArchiveModal,
+    closeArchiveModal,
   };
 });

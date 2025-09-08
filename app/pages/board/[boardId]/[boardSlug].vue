@@ -118,7 +118,7 @@
       :archived-cards="archivedCards"
       :archived-lists="archivedLists"
       :board-id="boardId || 0"
-      @close="showArchivePopover = false"
+      @close="boardStore.closeArchiveModal()"
       @restore-card="handleRestoreCard"
       @delete-card="handleDeleteCard"
       @restore-list="handleRestoreList"
@@ -146,6 +146,7 @@ const boardId = computed(() => {
 // Get stores
 const dataStore = useDataStore();
 const boardStore = useBoardStore();
+const filterStore = useFilterStore();
 
 // Set the current board ID in the board store
 watchEffect(() => {
@@ -207,17 +208,7 @@ const boardMembers = computed(() => {
   if (!boardId.value) return [];
   return dataStore.getBoardMembers(boardId.value);
 });
-
-const isFilterActive = computed(() => {
-  return (
-    activeFilters.value.keyword.trim() !== "" ||
-    activeFilters.value.noMembers ||
-    activeFilters.value.assignedToMe ||
-    activeFilters.value.members.length > 0 ||
-    activeFilters.value.cardStatus !== "" ||
-    activeFilters.value.activity !== ""
-  );
-});
+const isFilterActive = computed(() => filterStore.isFilterActive);
 
 // Helper function to check if card was active in given time period
 const isCardActiveInPeriod = (cardId: number, daysAgo: number): boolean => {
@@ -235,16 +226,23 @@ const isCardActiveInPeriod = (cardId: number, daysAgo: number): boolean => {
 
 // Filter cards function
 const filterCards = (cards: Card[]): Card[] => {
-  if (!isFilterActive.value) {
+  console.log("🔍 filterCards called with:", {
+    cardsCount: cards.length,
+    activeFilters: filterStore.activeFilters,
+    isFilterActive: filterStore.isFilterActive,
+  });
+
+  if (!filterStore.isFilterActive) {
+    console.log("➡️ No filters active, returning all cards");
     return cards;
   }
 
-  return cards.filter((card) => {
+  const filtered = cards.filter((card) => {
     let includeCard = true;
 
     // Keyword filter
-    if (activeFilters.value.keyword.trim()) {
-      const keyword = activeFilters.value.keyword.toLowerCase();
+    if (filterStore.activeFilters.keyword.trim()) {
+      const keyword = filterStore.activeFilters.keyword.toLowerCase();
       const matchesTitle = card.title.toLowerCase().includes(keyword);
       const matchesDescription =
         card.description?.toLowerCase().includes(keyword) || false;
@@ -255,21 +253,21 @@ const filterCards = (cards: Card[]): Card[] => {
     }
 
     // Member filters
-    if (includeCard && activeFilters.value.noMembers) {
+    if (includeCard && filterStore.activeFilters.noMembers) {
       if (card.assignedMembers && card.assignedMembers.length > 0) {
         includeCard = false;
       }
     }
 
-    if (includeCard && activeFilters.value.assignedToMe) {
+    if (includeCard && filterStore.activeFilters.assignedToMe) {
       if (!card.assignedMembers?.includes(currentUserId.value)) {
         includeCard = false;
       }
     }
 
-    if (includeCard && activeFilters.value.members.length > 0) {
+    if (includeCard && filterStore.activeFilters.members.length > 0) {
       const hasSelectedMember = card.assignedMembers?.some((memberId) =>
-        activeFilters.value.members.includes(memberId)
+        filterStore.activeFilters.members.includes(memberId)
       );
       if (!hasSelectedMember) {
         includeCard = false;
@@ -277,18 +275,24 @@ const filterCards = (cards: Card[]): Card[] => {
     }
 
     // Card Status filter
-    if (includeCard && activeFilters.value.cardStatus !== "") {
-      if (activeFilters.value.cardStatus === "completed" && !card.isComplete) {
+    if (includeCard && filterStore.activeFilters.cardStatus !== "") {
+      if (
+        filterStore.activeFilters.cardStatus === "completed" &&
+        !card.isComplete
+      ) {
         includeCard = false;
       }
-      if (activeFilters.value.cardStatus === "incomplete" && card.isComplete) {
+      if (
+        filterStore.activeFilters.cardStatus === "incomplete" &&
+        card.isComplete
+      ) {
         includeCard = false;
       }
     }
 
     // Activity filter
-    if (includeCard && activeFilters.value.activity !== "") {
-      switch (activeFilters.value.activity) {
+    if (includeCard && filterStore.activeFilters.activity !== "") {
+      switch (filterStore.activeFilters.activity) {
         case "lastWeek":
           if (!isCardActiveInPeriod(card.id, 7)) {
             includeCard = false;
@@ -314,6 +318,13 @@ const filterCards = (cards: Card[]): Card[] => {
 
     return includeCard;
   });
+
+  console.log("🎯 Filtered result:", {
+    originalCount: cards.length,
+    filteredCount: filtered.length,
+  });
+
+  return filtered;
 };
 
 // Get cards for a specific list with filtering applied
@@ -431,18 +442,23 @@ const handleGoToBoards = () => {
 };
 
 // Archive modal state
-const showArchivePopover = ref(false);
+const showArchivePopover = computed(() => {
+  console.log("🏛️ Archive modal computed:", boardStore.showArchiveModal);
+  return boardStore.showArchiveModal;
+});
 
 // Handler to show archive
 const handleShowArchive = () => {
-  showArchivePopover.value = true;
+  console.log("🏛️ Board page: handleShowArchive called");
+  boardStore.openArchiveModal();
+  console.log("🏛️ After opening:", boardStore.showArchiveModal);
 };
 
 const archivedCards = computed(() => {
   if (!boardId.value || !dataStore.isLoaded) return [];
 
   const cards = boardStore.getArchivedCards(boardId.value);
-  console.log("Archived cards:", cards); // Debug log
+  console.log("🗃️ Archived cards:", cards.length, cards);
   return cards;
 });
 
@@ -450,7 +466,7 @@ const archivedLists = computed(() => {
   if (!boardId.value || !dataStore.isLoaded) return [];
 
   const lists = boardStore.getArchivedLists(boardId.value);
-  console.log("Archived lists:", lists); // Debug log
+  console.log("🗃️ Archived lists:", lists.length, lists);
   return lists;
 });
 

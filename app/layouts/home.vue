@@ -67,6 +67,7 @@ const showBoardHeader = computed(() => {
 const boardStore = useBoardStore();
 const dataStore = useDataStore();
 const authStore = useAuthStore();
+const filterStore = useFilterStore();
 
 const currentBoard = computed(() => {
   if (!route.params.boardId || !dataStore.isLoaded) return null;
@@ -85,12 +86,20 @@ const currentUserId = computed(() => {
   return userId ? parseInt(userId) : 1;
 });
 
-const isFilterActive = ref(false);
+const isFilterActive = computed(() => filterStore.isFilterActive);
 
 // Board header event handlers
 const handleShowArchive = () => {
-  // Emit to board page or use a global event bus
-  boardStore.showArchive?.();
+  console.log("Layout: Show archive clicked");
+  console.log("boardStore:", boardStore);
+  console.log("boardStore methods:", Object.keys(boardStore));
+  console.log("openArchiveModal exists?", typeof boardStore.openArchiveModal);
+
+  if (boardStore.openArchiveModal) {
+    boardStore.openArchiveModal();
+  } else {
+    console.error("openArchiveModal method not found!");
+  }
 };
 
 const handleUpdateBoardName = (name) => {
@@ -114,8 +123,8 @@ const handleToggleFilter = () => {
 };
 
 const handleFilterChange = (filters) => {
-  // You might want to use a global state for filters
-  console.log("Filter changed:", filters);
+  console.log("📡 Layout: Filter changed:", filters);
+  filterStore.updateFilters(filters); // Use the store instead of just logging
 };
 
 const handleExportBoard = () => {
