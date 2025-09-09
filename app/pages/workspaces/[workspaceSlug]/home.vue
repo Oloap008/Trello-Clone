@@ -45,8 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Workspace } from "~/types";
-import { parseWorkspaceSlug, routes } from "~/utils/routes";
+import { parseWorkspaceSlug } from "~/utils/routes";
 import type { Board } from "~~/shared/types/globals";
 
 // Use the app layout
@@ -108,23 +107,6 @@ const workspaceBoards = computed(() => {
   return dataStore.getBoardsForWorkspace(workspaceId);
 });
 
-// Check if user can create boards
-const canCreateBoard = computed(() => {
-  if (!workspace.value || !currentUser.value) return false;
-
-  const userId = parseInt(currentUser.value.id);
-
-  // Owner can create boards
-  if (workspace.value.ownerId === userId) return true;
-
-  // Check member permissions
-  const member = dataStore.workspaceMembers.find(
-    (m) => m.workspaceId === workspaceId && m.userId === userId
-  );
-
-  return member?.canCreateBoards ?? false;
-});
-
 // Methods
 const getWorkspaceInitial = (name: string) => {
   return name.charAt(0).toUpperCase();
@@ -147,11 +129,6 @@ const navigateToBoard = (board: Board) => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")}`
   );
-};
-
-const handleCreateBoard = () => {
-  // Handle board creation
-  console.log("Create board in workspace:", workspaceId);
 };
 
 // SEO

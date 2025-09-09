@@ -386,43 +386,6 @@ const handleDeleteBoard = async (boardId: number) => {
   }
 };
 
-// Function to close a board (make it appear in closed boards)
-const handleCloseBoard = async (boardId: number) => {
-  try {
-    console.log("Close board handler called for board:", boardId);
-
-    // Update the board status to not_active using dataStore
-    const closedBoard = dataStore.update("boards", boardId, {
-      status: "not_active",
-    });
-
-    // Show success message
-    const toast = useToast();
-    toast.add({
-      title: "Board closed successfully",
-      color: "success",
-      icon: "i-heroicons-check-circle",
-    });
-
-    // Navigate to boards page
-    if (authStore.user?.email) {
-      await navigateTo(`/user/${authStore.user.email}/boards`);
-    } else {
-      await navigateTo("/boards");
-    }
-  } catch (error) {
-    console.error("Error closing board:", error);
-
-    const toast = useToast();
-    toast.add({
-      title: "Failed to close board",
-      description: "Please try again",
-      color: "error",
-      icon: "i-heroicons-exclamation-circle",
-    });
-  }
-};
-
 // SEO
 useHead({
   title: `${currentUser.value?.name || decodedUserEmail} - Boards | Taskify`,

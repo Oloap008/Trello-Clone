@@ -42,84 +42,14 @@
 
           <!-- Menu Items -->
           <div class="py-2">
-            <!-- First Section -->
-            <div class="px-2 py-1">
-              <button
-                @click="handleItemClick('about')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon
-                  name="i-heroicons-information-circle"
-                  class="w-4 h-4 mr-3"
-                />
-                About this board
-              </button>
-              <button
-                @click="handleItemClick('activity')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon name="i-heroicons-clock" class="w-4 h-4 mr-3" />
-                Activity
-              </button>
-            </div>
-
-            <div class="border-t border-gray-600 my-1"></div>
-
             <!-- Second Section -->
             <div class="px-2 py-1">
-              <button
-                @click="handleItemClick('settings')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon name="i-heroicons-cog-6-tooth" class="w-4 h-4 mr-3" />
-                Settings
-              </button>
-              <button
-                @click="handleItemClick('labels')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon name="i-heroicons-tag" class="w-4 h-4 mr-3" />
-                Labels
-              </button>
-              <button
-                @click="handleItemClick('custom-fields')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon
-                  name="i-heroicons-adjustments-horizontal"
-                  class="w-4 h-4 mr-3"
-                />
-                Custom Fields
-              </button>
               <button
                 @click="$emit('show-archive')"
                 class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
               >
                 <UIcon name="i-heroicons-archive-box" class="w-4 h-4 mr-3" />
                 Archived items
-              </button>
-            </div>
-
-            <div class="border-t border-gray-600 my-1"></div>
-
-            <!-- Third Section -->
-            <div class="px-2 py-1">
-              <button
-                @click="$emit('export-board')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon name="i-heroicons-share" class="w-4 h-4 mr-3" />
-                Print, export, and share
-              </button>
-              <button
-                @click="handleItemClick('copy-board')"
-                class="w-full flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors text-left"
-              >
-                <UIcon
-                  name="i-heroicons-document-duplicate"
-                  class="w-4 h-4 mr-3"
-                />
-                Copy board
               </button>
             </div>
 
@@ -203,11 +133,6 @@ const toggleMenu = () => {
 const closeMenu = () => {
   isOpen.value = false;
   showCloseConfirm.value = false;
-};
-
-const handleItemClick = (action: string) => {
-  console.log(`${action} clicked`);
-  // Note: We don't close the menu here so it stays open
 };
 
 const handleCloseConfirm = () => {

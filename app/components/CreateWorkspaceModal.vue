@@ -31,7 +31,7 @@
 import { ref, computed } from "vue";
 import { useWorkspaceCreation } from "~/composables/useWorkspaceCreation";
 
-const props = defineProps({
+defineProps({
   modelValue: Boolean,
 });
 

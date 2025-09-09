@@ -160,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Board, BoardMember } from "~/types";
+import type { Board, BoardMember } from "~~/shared/types/globals";
 
 // Props
 interface Props {
@@ -229,66 +229,6 @@ const hasActiveFilters = computed(() => {
   );
 });
 
-// Board menu items
-const boardMenuItems = computed(() => [
-  [
-    {
-      label: "About this board",
-      icon: "i-heroicons-information-circle",
-      onSelect: () => console.log("About board"),
-    },
-    {
-      label: "Activity",
-      icon: "i-heroicons-clock",
-      onSelect: () => console.log("Board activity"),
-    },
-  ],
-  [
-    {
-      label: "Settings",
-      icon: "i-heroicons-cog-6-tooth",
-      onSelect: () => console.log("Board settings"),
-    },
-    {
-      label: "Labels",
-      icon: "i-heroicons-tag",
-      onSelect: () => console.log("Manage labels"),
-    },
-    {
-      label: "Custom fields",
-      icon: "i-heroicons-adjustments-horizontal",
-      onSelect: () => console.log("Custom fields"),
-    },
-  ],
-  [
-    {
-      label: "Print, export, and share",
-      icon: "i-heroicons-share",
-      onSelect: () => emit("export-board"),
-    },
-    {
-      label: "Copy board",
-      icon: "i-heroicons-document-duplicate",
-      onSelect: () => console.log("Copy board"),
-    },
-  ],
-  [
-    {
-      label: "Archived items",
-      icon: "i-heroicons-archive-box",
-      onSelect: () => emit("show-archive"),
-    },
-  ],
-  [
-    {
-      label: "Close board",
-      icon: "i-heroicons-archive-box",
-      color: "warning",
-      onSelect: () => emit("close-board"),
-    },
-  ],
-]);
-
 // Methods
 const getUserInitials = (user: any) => {
   return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
@@ -344,10 +284,6 @@ const setBoardVisibility = (isPublic: boolean) => {
     color: "success",
     icon: isPublic ? "i-heroicons-globe-alt" : "i-heroicons-lock-closed",
   });
-};
-
-const handleInviteMembers = () => {
-  emit("invite-members");
 };
 
 const toggleFilter = () => {

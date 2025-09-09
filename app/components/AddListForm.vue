@@ -15,12 +15,12 @@
     <!-- Add List Form -->
     <div v-else class="bg-gray-200 rounded-xl p-3" @click.stop>
       <textarea
-        :value="newListTitle"
-        @input="$emit('update-title', $event.target.value)"
         :ref="(el) => $emit('set-list-input-ref', el)"
+        rows="2"
         placeholder="Enter list title..."
         class="w-full p-3 text-sm border-none rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm mb-2"
-        rows="2"
+        :value="newListTitle"
+        @input="$emit('update-title', $event.target.value)"
         @keydown.escape="$emit('cancel')"
         @keydown.enter="$emit('handle-enter', $event)"
       ></textarea>

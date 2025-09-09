@@ -334,9 +334,7 @@ const filteredUsers = computed(() => {
 });
 
 // Functions
-const handleSearch = () => {
-  // Search happens automatically through computed property
-};
+const handleSearch = () => {};
 
 const selectUser = (user) => {
   selectedUsers.value.push(user);

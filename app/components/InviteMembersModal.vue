@@ -297,7 +297,6 @@ defineExpose({
 </script>
 
 <style scoped>
-/* Ensure dropdown can extend outside modal */
 .overflow-visible {
   overflow: visible !important;
 }

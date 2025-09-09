@@ -238,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import type { BoardMember } from "~/types";
+import type { BoardMember } from "~~/shared/types/globals";
 
 // Props
 interface Props {

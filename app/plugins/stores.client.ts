@@ -10,8 +10,5 @@ export default defineNuxtPlugin(async () => {
 
   console.log("Data store initialized, users count:", dataStore.users.length);
 
-  // Then initialize auth store
-  const authStore = useAuthStore();
-
   console.log("All stores initialized");
 });

@@ -4,7 +4,6 @@
       <AppLogo />
 
       <div class="flex items-center space-x-4">
-        <AppSearchBar />
         <HeaderActions @logout="$emit('logout')" @create="$emit('create')" />
       </div>
     </div>

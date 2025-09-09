@@ -30,30 +30,6 @@
           <UButton
             variant="ghost"
             size="xs"
-            class="text-gray-500 hover:text-gray-700"
-          >
-            <UIcon
-              name="i-heroicons-arrow-top-right-on-square"
-              class="w-4 h-4"
-            />
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="xs"
-            class="text-gray-500 hover:text-gray-700"
-          >
-            <UIcon name="i-heroicons-arrows-pointing-out" class="w-4 h-4" />
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="xs"
-            class="text-gray-500 hover:text-gray-700"
-          >
-            <UIcon name="i-heroicons-ellipsis-horizontal" class="w-4 h-4" />
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="xs"
             @click="$emit('close')"
             class="text-gray-500 hover:text-gray-700"
           >
@@ -108,30 +84,6 @@
 
           <!-- Action Buttons Row -->
           <div class="flex flex-wrap gap-2 mb-8">
-            <button
-              class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-            >
-              <UIcon name="i-heroicons-plus" class="w-4 h-4" />
-              Add
-            </button>
-            <button
-              class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-            >
-              <UIcon name="i-heroicons-tag" class="w-4 h-4" />
-              Labels
-            </button>
-            <button
-              class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-            >
-              <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-              Dates
-            </button>
-            <button
-              class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-sm transition-colors"
-            >
-              <UIcon name="i-heroicons-list-bullet" class="w-4 h-4" />
-              Checklist
-            </button>
             <MembersPopover
               :board-id="boardId"
               :card-id="selectedCard?.id"

@@ -15,15 +15,6 @@
           />
           Boards
         </NuxtLink>
-
-        <NuxtLink
-          :to="userBoardsUrl"
-          class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100"
-          active-class="bg-gray-100 text-gray-900"
-        >
-          <UIcon name="i-heroicons-home" class="w-5 h-5 mr-3 text-gray-400" />
-          Home
-        </NuxtLink>
       </nav>
 
       <!-- Workspaces Section -->
@@ -146,7 +137,7 @@ const userWorkspaces = computed(() => {
 });
 
 // State
-const expandedWorkspaces = ref(new Set([1])); // Expand first workspace by default
+const expandedWorkspaces = ref(new Set([1]));
 
 // Computed URLs
 const userBoardsUrl = computed(() => {
@@ -175,10 +166,6 @@ const getWorkspaceColor = (workspaceId: number) => {
     "bg-purple-500",
   ];
   return colors[workspaceId % colors.length];
-};
-
-const getWorkspaceBoards = (workspaceId: number) => {
-  return dataStore.getBoardsForWorkspace(workspaceId);
 };
 
 // URL helpers

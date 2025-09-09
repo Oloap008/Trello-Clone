@@ -116,12 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import type {
-  Workspace,
-  WorkspaceMember,
-  User,
-  DropdownMenuItem,
-} from "~/types";
+import type { DropdownMenuItem } from "~/types";
 import { parseWorkspaceSlug } from "~/utils/routes";
 
 // Use the app layout and require authentication

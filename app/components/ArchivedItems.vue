@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Card, List } from "~/types";
+import type { Card, List } from "~~/shared/types/globals";
 
 interface Props {
   isOpen: boolean;
@@ -200,8 +200,6 @@ defineEmits<{
   "restore-list": [listId: number];
   "delete-list": [listId: number];
 }>();
-
-const dataStore = useDataStore();
 
 // Local state
 const currentView = ref<"cards" | "lists">("cards");
@@ -265,10 +263,5 @@ const formatRelativeTime = (dateString: string | undefined) => {
   } else {
     return date.toLocaleDateString();
   }
-};
-
-const getArchivedCardsInList = (listId: number) => {
-  const props = getCurrentInstance()?.props as Props;
-  return (props.archivedCards || []).filter((card) => card.listId === listId);
 };
 </script>

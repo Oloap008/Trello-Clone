@@ -141,7 +141,6 @@ const emit = defineEmits<Emits>();
 
 // Get stores
 const dataStore = useDataStore();
-const authStore = useAuthStore();
 
 // Reactive state
 const searchQuery = ref("");

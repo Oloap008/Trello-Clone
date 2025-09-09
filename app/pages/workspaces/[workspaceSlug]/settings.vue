@@ -288,9 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Workspace, RadioGroupItem } from "~/types";
 import { parseWorkspaceSlug } from "~/utils/routes";
-import { defaultKanbanData } from "~/utils/defaultData";
 
 // Use the app layout
 definePageMeta({
@@ -298,7 +296,6 @@ definePageMeta({
 });
 
 const dataStore = useDataStore();
-
 const toast = useToast();
 
 // Get route params
@@ -306,13 +303,15 @@ const route = useRoute();
 const workspaceSlug = route.params.workspaceSlug as string;
 const { id: workspaceId } = parseWorkspaceSlug(workspaceSlug);
 
-// Data
-const data = ref(defaultKanbanData);
+// Remove this line - don't use defaultKanbanData
+// const data = ref(defaultKanbanData);
+
+// Use the current user from auth store or your existing setup
 const currentUser = ref({ id: 1, email: "demo@example.com" });
 
-// Find workspace
+// Find workspace from the dataStore instead of local data
 const workspace = computed(() => {
-  return data.value.workspaces.find((w) => w.id === workspaceId);
+  return dataStore.workspaces.find((w) => w.id === workspaceId);
 });
 
 // Form states
@@ -339,7 +338,7 @@ const permissionsForm = ref({
   canInviteMembers: false,
 });
 
-// ✅ Fixed: Updated options format for URadioGroup v3
+// Updated options format for URadioGroup v3
 const visibilityOptions = [
   {
     value: false,
@@ -364,9 +363,9 @@ const adminMemberOptions = computed(() => {
     )
     .map((member) => ({
       label: `${member.user.firstName} ${member.user.lastName}`,
-      description: member.user.email, // This will show as secondary text
-      userId: member.userId, // This is what gets selected due to value-key="userId"
-      member: member, // Keep full member object for reference
+      description: member.user.email,
+      userId: member.userId,
+      member: member,
     }));
 
   return options;
@@ -382,8 +381,8 @@ const canManageWorkspace = computed(() => {
   // Owner can manage
   if (workspace.value.ownerId === currentUser.value.id) return true;
 
-  // Check if user is admin
-  const member = data.value.workspaceMembers.find(
+  // Check if user is admin - use dataStore instead of local data
+  const member = dataStore.workspaceMembers.find(
     (m) => m.workspaceId === workspaceId && m.userId === currentUser.value.id
   );
 
@@ -397,26 +396,8 @@ const workspaceMembers = computed(() => {
 });
 
 // Methods
-
-// Get admin members (excluding current owner)
-const adminMembers = computed(() => {
-  if (!workspace.value) return [];
-
-  return workspaceMembers.value
-    .filter(
-      (member) =>
-        member.role === "admin" && member.userId !== workspace.value.ownerId
-    )
-    .map((member) => ({
-      ...member,
-      label: `${member.user.firstName} ${member.user.lastName} (${member.user.email})`,
-      value: member.userId,
-    }));
-});
-
 const handleTransferOwnership = () => {
   if (adminMemberOptions.value.length === 0) {
-    // Show warning toast instead of just console.warn
     toast.add({
       title: "No Admin Members Available",
       description:
@@ -428,7 +409,7 @@ const handleTransferOwnership = () => {
     return;
   }
 
-  selectedNewOwner.value = null; // Reset selection
+  selectedNewOwner.value = null;
   showTransferModal.value = true;
 };
 
@@ -445,7 +426,6 @@ const confirmTransferOwnership = async () => {
 
   transferring.value = true;
   try {
-    // Show loading toast
     toast.add({
       title: "Transferring Ownership",
       description: "Please wait while we transfer the workspace ownership...",
@@ -454,39 +434,38 @@ const confirmTransferOwnership = async () => {
       duration: 2000,
     });
 
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Update workspace owner - selectedNewOwner.value is the userId
-    workspace.value.ownerId = selectedNewOwner.value;
+    // Update workspace owner using dataStore
+    dataStore.update("workspaces", workspace.value.id, {
+      ownerId: selectedNewOwner.value,
+    });
 
     // Update the old owner's role to admin
-    const oldOwnerMembership = data.value.workspaceMembers.find(
+    const oldOwnerMembership = dataStore.workspaceMembers.find(
       (m) => m.workspaceId === workspaceId && m.userId === currentUser.value.id
     );
 
     if (oldOwnerMembership) {
-      oldOwnerMembership.role = "admin";
+      dataStore.update("workspaceMembers", oldOwnerMembership.id, {
+        role: "admin",
+      });
     } else {
       // Create new membership for old owner
-      data.value.workspaceMembers.push({
-        id: Math.max(...data.value.workspaceMembers.map((m) => m.id)) + 1,
+      dataStore.create("workspaceMembers", {
         workspaceId: workspaceId,
         userId: currentUser.value.id,
         role: "admin",
         canCreateBoards: true,
         canInviteMembers: true,
-        joinedAt: new Date().toISOString(),
         status: "active",
       });
     }
 
-    // Find the new owner's name for the success message
     const newOwner = adminMemberOptions.value.find(
       (option) => option.userId === selectedNewOwner.value
     );
 
-    // Show success toast
     toast.add({
       title: "Ownership Transferred Successfully",
       description: `${
@@ -498,9 +477,7 @@ const confirmTransferOwnership = async () => {
     });
 
     showTransferModal.value = false;
-
-    // Redirect to workspace home since user is no longer owner
-    await navigateTo(`/w/${workspaceSlug}`);
+    await navigateTo(`/workspaces/${workspaceSlug}/home`);
   } catch (error) {
     console.error("Transfer failed:", error);
     toast.add({
@@ -526,23 +503,27 @@ const confirmDeleteWorkspace = async () => {
 
   deleting.value = true;
   try {
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Set workspace status to deleted
-    workspace.value.status = "not_active";
+    // Set workspace status to deleted using dataStore
+    dataStore.update("workspaces", workspace.value.id, {
+      status: "not_active",
+    });
 
     // Also mark related boards as deleted
-    data.value.boards
-      .filter((board) => board.workspaceId === workspaceId)
-      .forEach((board) => {
-        board.status = "not_active";
+    const workspaceBoards = dataStore.boards.value.filter(
+      (board) => board.workspaceId === workspaceId
+    );
+
+    workspaceBoards.forEach((board) => {
+      dataStore.update("boards", board.id, {
+        status: "not_active",
       });
+    });
 
     console.log(`Deleted workspace: ${workspace.value.name}`);
     showDeleteModal.value = false;
 
-    // Redirect to home
     await navigateTo("/");
   } catch (error) {
     console.error("Delete failed:", error);
@@ -554,19 +535,23 @@ const confirmDeleteWorkspace = async () => {
 const saveWorkspaceSettings = async () => {
   saving.value = true;
   try {
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log("Save workspace settings:", workspaceForm.value);
 
-    // Update local data (in real app, this would come from API response)
+    // Update workspace using dataStore
     if (workspace.value) {
-      workspace.value.name = workspaceForm.value.name;
-      workspace.value.description = workspaceForm.value.description;
-      workspace.value.isPublic = workspaceForm.value.isPublic;
-    }
+      dataStore.update("workspaces", workspace.value.id, {
+        name: workspaceForm.value.name,
+        description: workspaceForm.value.description,
+        isPublic: workspaceForm.value.isPublic,
+      });
 
-    // Show success message
-    // You'd typically use a toast notification here
+      toast.add({
+        title: "Settings Saved",
+        description: "Workspace settings have been updated successfully",
+        color: "success",
+        icon: "i-heroicons-check-circle",
+      });
+    }
   } finally {
     saving.value = false;
   }
@@ -575,11 +560,15 @@ const saveWorkspaceSettings = async () => {
 const savePermissionSettings = async () => {
   savingPermissions.value = true;
   try {
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log("Save permission settings:", permissionsForm.value);
 
-    // Show success message
+    toast.add({
+      title: "Permissions Saved",
+      description: "Permission settings have been updated successfully",
+      color: "success",
+      icon: "i-heroicons-check-circle",
+    });
   } finally {
     savingPermissions.value = false;
   }
@@ -612,7 +601,7 @@ const hasAccess = computed(() => {
   if (!workspace.value) return false;
   return (
     workspace.value.ownerId === currentUser.value.id ||
-    data.value.workspaceMembers.some(
+    dataStore.workspaceMembers.some(
       (member) =>
         member.workspaceId === workspaceId &&
         member.userId === currentUser.value.id

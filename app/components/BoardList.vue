@@ -194,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import type { List } from "~/types";
+import type { List } from "~~/shared/types/globals";
 
 interface Props {
   list: List;

@@ -186,29 +186,12 @@ onMounted(() => {
   checkReady();
 });
 
-// Filter state
-const activeFilters = ref({
-  keyword: "",
-  noMembers: false,
-  assignedToMe: false,
-  members: [] as number[],
-  cardStatus: "" as "" | "completed" | "incomplete",
-  activity: "" as "" | "lastWeek" | "twoWeeks" | "fourWeeks" | "noActivity",
-});
-
 // Get current user ID from auth store
 const authStore = useAuthStore();
 const currentUserId = computed(() => {
   const userId = authStore.user?.id;
   return userId ? parseInt(userId) : 1;
 });
-
-// Get board members using the data store
-const boardMembers = computed(() => {
-  if (!boardId.value) return [];
-  return dataStore.getBoardMembers(boardId.value);
-});
-const isFilterActive = computed(() => filterStore.isFilterActive);
 
 // Helper function to check if card was active in given time period
 const isCardActiveInPeriod = (cardId: number, daysAgo: number): boolean => {
@@ -359,100 +342,11 @@ const cardTitleInput = ref<HTMLInputElement>();
 const newComment = ref("");
 const selectedCardListId = ref<string | null>(null);
 
-const showCloseBoardPopover = ref(false);
-
-const handleCloseBoard = async () => {
-  try {
-    console.log("Close board handler called for board:", boardId.value);
-
-    if (!boardId.value) {
-      console.error("No board ID available");
-      return;
-    }
-
-    // Store the navigation URL before updating the board
-    // (because after update, authStore might be affected by the re-render)
-    const navigationUrl = authStore.user?.email
-      ? `/user/${encodeURIComponent(authStore.user.email)}/boards`
-      : "/boards";
-
-    console.log("Will navigate to:", navigationUrl);
-
-    // Update the board status to not_active
-    const closedBoard = dataStore.update("boards", boardId.value, {
-      status: "not_active",
-    });
-
-    console.log("Board after closing:", closedBoard);
-
-    // Show success message
-    const toast = useToast();
-    toast.add({
-      title: "Board closed successfully",
-      color: "success",
-      icon: "i-heroicons-check-circle",
-    });
-
-    // Use setTimeout to ensure the toast shows and DOM updates complete
-    setTimeout(async () => {
-      console.log("Attempting navigation to:", navigationUrl);
-
-      try {
-        // Force navigation with replace to avoid back button issues
-        await navigateTo(navigationUrl, { replace: true });
-      } catch (navError) {
-        console.error("navigateTo failed, using window.location:", navError);
-        // Fallback to window.location for guaranteed navigation
-        window.location.href = navigationUrl;
-      }
-    }, 100);
-  } catch (error) {
-    console.error("Error closing board:", error);
-
-    const toast = useToast();
-    toast.add({
-      title: "Failed to close board",
-      description: "Please try again",
-      color: "error",
-      icon: "i-heroicons-exclamation-circle",
-    });
-  }
-};
-
-const handleConfirmCloseBoard = () => {
-  if (boardStore.closeBoard) {
-    boardStore.closeBoard(boardId.value!);
-  }
-  showCloseBoardPopover.value = false;
-  // Redirect to boards page
-  navigateTo("/boards");
-};
-
-const handleGoToBoards = () => {
-  console.log("Go to boards handler called!");
-
-  // Navigate to boards page without closing the board
-  const authStore = useAuthStore();
-  if (authStore.user?.email) {
-    navigateTo(`/user/${authStore.user.email}/boards`);
-  } else {
-    // Fallback navigation
-    navigateTo("/boards");
-  }
-};
-
 // Archive modal state
 const showArchivePopover = computed(() => {
   console.log("🏛️ Archive modal computed:", boardStore.showArchiveModal);
   return boardStore.showArchiveModal;
 });
-
-// Handler to show archive
-const handleShowArchive = () => {
-  console.log("🏛️ Board page: handleShowArchive called");
-  boardStore.openArchiveModal();
-  console.log("🏛️ After opening:", boardStore.showArchiveModal);
-};
 
 const archivedCards = computed(() => {
   if (!boardId.value || !dataStore.isLoaded) return [];
@@ -525,39 +419,6 @@ const currentListIdAsNumber = computed(() => {
     ? parseInt(selectedCardListId.value)
     : undefined;
 });
-
-// Board header event handlers
-const handleUpdateBoardName = (name: string) => {
-  if (boardStore.updateBoard) {
-    boardStore.updateBoard(boardId.value!, { name });
-  }
-};
-
-const handleUpdateBoardVisibility = (isPublic: boolean) => {
-  if (boardStore.updateBoard) {
-    boardStore.updateBoard(boardId.value!, { isPublic });
-  }
-};
-
-const handleInviteMembers = () => {
-  console.log("Invite members");
-};
-
-const handleToggleFilter = () => {
-  console.log("Filter toggled");
-};
-
-const handleFilterChange = (filters: any) => {
-  activeFilters.value = { ...filters };
-};
-
-const handleExportBoard = () => {
-  console.log("Export board");
-};
-
-const handleDeleteBoard = () => {
-  console.log("Delete board");
-};
 
 const handleRestoreCard = (cardId: number) => {
   if (boardStore.restoreCard) {

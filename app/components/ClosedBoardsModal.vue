@@ -193,14 +193,6 @@ const handleBackdropClick = () => {
   emit("close");
 };
 
-const handleReopenBoard = (boardId: number) => {
-  emit("reopen", boardId);
-};
-
-const handleDeleteBoard = (boardId: number) => {
-  emit("delete", boardId);
-};
-
 // Reset filter when modal opens
 watch(
   () => props.isVisible,
